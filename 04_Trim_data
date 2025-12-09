@@ -41,34 +41,20 @@ trimmomatic PE -threads 4 -phred33 \
 04.TrimmedData/$file"_1.trim.pair.fq.gz" 04.TrimmedData/unpair/$file"_1.trim.unpair.fq.gz" \
 04.TrimmedData/$file"_2.trim.pair.fq.gz" 04.TrimmedData/unpair/$file"_2.trim.unpair.fq.gz" \
 ILLUMINACLIP:/scratch/project_2009316/Adriana/X204SC23115958-Z01-F001_01/04.TrimmedData/adapters/TruSeq3-PE_and_NebNext.fa:2:30:10:2:keepBothReads LEADING:10 TRAILING:10 SLIDINGWINDOW:4:15 MINLEN:50    
+#NOTE: above, we used a different path for the adapters!
 
-## Quality control
-#fastqc 04.TrimmedData/$file"_1.trim.pair.fq.gz" -o 04.TrimmedData/FastQC && \
-#fastqc 04.TrimmedData/$file"_2.trim.pair.fq.gz" -o 04.TrimmedData/FastQC
+## Quality control - FastQC
+fastqc 04.TrimmedData/$file"_1.trim.pair.fq.gz" -o 04.TrimmedData/FastQC && \
+fastqc 04.TrimmedData/$file"_2.trim.pair.fq.gz" -o 04.TrimmedData/FastQC
+
+## Quality control - MultiQC
+## Under the folder, you can use the following code directly.
+
+module load multiqc/1.19
+multiqc /scratch/project_2009316/trimmed/fastqc/*fastqc.zip -o /scratch/project_2009316/trimmed/fastqc/results/
 
 
 ## DOWNLOAD FROM HPC TO LOCAL COMPUTER     # "." means current working directory on local machine; download while being on local machine
 #scp krapfpat@puhti.csc.fi:/scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008//04.TrimmedData/FastQC/*.html .
 
---
-## Quality control above may not necessary work, so we calculate it manually
-#First, we use fastqc
-under "/scratch/project_2009316/trimmed/pairs"
-script
-1.1_fq.sh
-
-in script, used "comb2trim"
-
-
-1.2_multiqc.sh
-under "/scratch/project_2009316/trimmed/fastqc"
-Note: You can just use this code directly.
-
-MultiQC
-module load multiqc/1.19
-multiqc /scratch/project_2009316/trimmed/fastqc/*fastqc.zip -o /scratch/project_2009316/trimmed/fastqc/results/
-
-scp krapfpat@puhti.csc.fi:/scratch/project_2009316/trimmed/fastqc/results/* ./ 
-Results under
-\\wsl.localhost\Ubuntu\root
 
