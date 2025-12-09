@@ -1,7 +1,8 @@
 ## Next, we will do the mapping, sorting, and indexing of the files to a hybrid reference genome. This is the first step.
 ## In the second step, we will compute size distributions. In a third step, we will filter (exclude) duplicates
 ## See, the script below.
-## We need a new folder "05.BAM" and within this folder, a folder called "logs", and a folder called "stats". We will use the same sample file as initially created
+## We need a new folder "05.BAM" and within this folder, a folder called "logs", a folder called "stats", and a folder called "nodupl".
+#We will use the same sample file as initially created
 
 #!/bin/bash -l
 #SBATCH -J map
