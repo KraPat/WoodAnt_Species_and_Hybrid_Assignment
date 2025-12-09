@@ -14,3 +14,5 @@ COMBPATH=/scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/03.Combin
 ## combining files
 cat $RAWPATH/th1/th1_MKDN250052012-1A_235LJ2LT4_L7_1.fq.gz $RAWPATH/th1/th1_MKDN250052012-1A_235LJ3LT4_L5_1.fq.gz > $COMBPATH/th1_MKDN250052012-1A_235LJ3LT4_L5comb_1.fq.gz
 cat $RAWPATH/th1/th1_MKDN250052012-1A_235LJ2LT4_L7_2.fq.gz $RAWPATH/th1/th1_MKDN250052012-1A_235LJ3LT4_L5_2.fq.gz > $COMBPATH/th1_MKDN250052012-1A_235LJ3LT4_L5comb_2.fq.gz
+
+## Ideally, in the end, you have all files, regardless if they are combined or not in one folder only.
