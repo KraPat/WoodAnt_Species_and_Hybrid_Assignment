@@ -55,6 +55,6 @@ multiqc /scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/FastQC/*fa
 
 
 ## DOWNLOAD FROM HPC TO LOCAL COMPUTER     # "." means current working directory on local machine; download while being on local machine
-#scp krapfpat@puhti.csc.fi:/scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008//04.TrimmedData/FastQC/results/*.html .
+#scp krapfpat@puhti.csc.fi:/scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/04.TrimmedData/FastQC/results/*.html .
 
 
