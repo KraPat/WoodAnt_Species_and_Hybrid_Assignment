@@ -1,0 +1,46 @@
+#NOTE:
+#I first tried to create the environemnt using Anaconda, powershell, etc. It all did not work because the platform was still #Windows. I then installed Ubuntu using the linux subsystem on Windows (WSL, see 
+https://learn.microsoft.com/en-us/windows/wsl/install and https://learn.microsoft.com/en-us/windows/wsl/setup/environment ). Below, it did not work, but I kept is as information. Above, however, did work
+#(In Anaconda, added the channels conda-forge and bioconda; with this not needed to add -c bioconda etc anymore)
+#First, download Anaconda following https://www.anaconda.com/download
+#Now, install Anaconda
+
+#1)To create an environment we follow the following steps
+#Locally, on your Ubuntu machine, you have to create a new environment file and select which software you want to have installed. 
+
+conda create -n myenv
+conda activate myenv
+conda install mamba
+#Then use "mamba" to install software
+mamba install vt bamutil mosdepth vcflib phyml python numpy tabix vt
+
+#2) Now, we export this to en environment file "env.yml" which will be used on the cluster
+conda env export --from-history -n myenv | grep -v prefix > env.yml
+
+#3) Copy .yml file to puhit in the projectappl folder
+Scp LOCAL_STORAGE/env.yml PATH_TO_PROJECTAPP_FOLDER/
+
+#4) Connect to PUTHI and move to projappl and create a folder for the container
+Ssh puhti...
+cd /projappl/YOUR_PROJECT
+mkdir /projappl/YOUR_PROJECT/myenv
+
+#5) Now, we need to build a container from the yml recipe file: 
+module load tykky
+conda-containerize new --prefix /projappl/YOUR_PROJECT/myenv env.yml
+#[ INFO ] Constructing configuration
+#[ INFO ] Using /local_scratch/nouhaudp/cw-5AIOND as temporary directory
+
+#6) All the tools available in the container are accessible by adding the bin folder to the path: 
+export PATH="/projappl/YOUR_PROJECT/myenv/bin:$PATH"
+
+#7) You can also update Conda
+#To actually modify the installation, we can use the update keyword together with the --post-install <file> option, which specifies a bash script with commands to run to update the installation. The commands are executed with the Conda environment activated.
+Aus <https://docs.csc.fi/computing/containers/tykky/> 
+
+conda-containerize update <existing installation> --post-install <file> 
+
+#Where <file> could e.g. contain:
+conda install -y multiqc
+
+#DONE
