@@ -1,0 +1,44 @@
+#1) Download the data and check the MD5 checksum of a file run md5sum myFile.
+wget --user XY-Z01-F001 --password XY URL 
+#for each txt, md5 and tar file
+
+#In the txt or MD5 file, you should see a check sum. When using "cksum FILE", it will create a string of numbers and letters, which if identical with the number in the MD5 file, shows data integrity. 
+cksum FILE
+#string appears
+
+#2) Back-up at ALLAS
+#Connect to Allas from CSC puhti, foollow tutorial:
+https://docs.csc.fi/data/Allas/using_allas/a_commands/
+
+#First, load allas module
+module load allas
+
+#Configure project
+allas-conf project_2009316
+#Note: it takes a moment or two
+
+#From the scratch folder where data is stored, run the code below to uploads data
+a-put FILE -b YOUR_RAW_DATA_BUCKET
+# "-b" specifies a "bucket", a folder in which the data is stored and then the name of this
+
+#To access data on Allas, you need to load allas module
+module load allas
+
+#Then configure to get access by doing
+allas-conf YOUR_PROJECT
+
+#Then, call lust of files using the project folder
+a-list YOUR_RAW_DATA_BUCKET
+
+#To download data from ALLAS, use, e.g.
+a-get YOUR_RAW_DATA_BUCKET/dataset_3.tar
+
+
+#3) Now, we extract files and delete tar files
+#Extract files from tar using
+tar -xavf Individual_files.tar.gz
+
+#-x --> extract
+#-a --> automatically detecs the compression format and to decompress it
+#-v --> verbose -displays output
+#-f --> tells which tar exactly
