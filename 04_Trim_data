@@ -2,7 +2,7 @@
 ## We will also quality check the sequences with fastqc and the multiqc. At the end, we will download these files and check them locally
 ## For this, we create a script, called "trim.sh"
 ## We also need a file "name.list", which stores the names of the files without "_1.fq.gz" in it
-## We also need a new folder, "04.TrimmedData", and within this, a folder called "unpair" for the unpaired data, and a folder called "logs" for the output files, as well as a folder "FastQC" for the FastQC output.
+## We also need a new folder, "04.TrimmedData", and within this, a folder called "unpair" for the unpaired data, and a folder called "logs" for the output files, as well as a folder "FastQC" for the FastQC output. Within "FastQC", we also need to create a folder called "results"
 
 ### nano trim.sh
 ### chmod +x trim.sh  #this makes the script usable (runable) in Bash
@@ -51,10 +51,10 @@ fastqc 04.TrimmedData/$file"_2.trim.pair.fq.gz" -o 04.TrimmedData/FastQC
 ## Under the folder, you can use the following code directly.
 
 module load multiqc/1.19
-multiqc /scratch/project_2009316/trimmed/fastqc/*fastqc.zip -o /scratch/project_2009316/trimmed/fastqc/results/
+multiqc /scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/FastQC/*fastqc.zip -o /scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/FastQC/results/
 
 
 ## DOWNLOAD FROM HPC TO LOCAL COMPUTER     # "." means current working directory on local machine; download while being on local machine
-#scp krapfpat@puhti.csc.fi:/scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008//04.TrimmedData/FastQC/*.html .
+#scp krapfpat@puhti.csc.fi:/scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008//04.TrimmedData/FastQC/results/*.html .
 
 
