@@ -27,7 +27,7 @@ TRIMPATH=/scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/04.Trimme
 TMPBAMPATH=/scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/temp
 BAMPATH=/scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/05.BAM
 
-file=$(sed -n "$SLURM_ARRAY_TASK_ID"p 04.TrimmedData/name.list)
+file=$(sed -n "$SLURM_ARRAY_TASK_ID"p name.list)
 shortfile=${file}
 
 echo "###### STARTING file: $file"
