@@ -1,8 +1,9 @@
-## Next, we will do the mapping, sorting, and indexing of the files to a hybrid reference genome. This is the first step.
+## Nex, we will do the mapping.
+##As a first step, we will map the files to a reference hybrid genome, and then sort and index them.
 ## In the second step, we will compute size distributions. In a third step, we will filter (exclude) duplicates
 ## See, the script below.
 ## We need a new folder "05.BAM" and within this folder, a folder called "logs", a folder called "stats", and a folder called "nodupl".
-#We will use the same sample file as initially created
+## We will use the same sample file as initially created
 
 #!/bin/bash -l
 #SBATCH -J map
@@ -84,7 +85,7 @@ echo "###### DONE! sample ID: $file"
 
 
 ##################################################################
-## Below, we calculate the mean insert sizes per sample using sinteractive
+## Below, we calculate the mean insert sizes per sample directly on the cluster using sinteractive.
 
 sinteractive --account project_2009316 --mem 8000  # requests an interactive job on a compute node
 ## Collect mean insert sizes per sample  --------------------
