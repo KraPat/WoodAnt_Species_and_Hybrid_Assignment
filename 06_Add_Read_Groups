@@ -1,6 +1,8 @@
 ## First, we need we need to create a new folder within 05.BAM, called "noDupl_RG" and to create a new sample list, see below.
 cd /scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/05.BAM/nodupl
 mkdir /scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/05.BAM/nodupl_RG
+
+## The sample list needs to be created in folder "nodup", ie /scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/05.BAM/nodupl
 ls *bam > nodupl_name.list
 
 
