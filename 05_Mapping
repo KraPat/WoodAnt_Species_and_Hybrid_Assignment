@@ -101,7 +101,14 @@ paste tmp2 tmp1 > all.mean_insert_sizes.txt ; rm *tmp*
 scp krapfpat@puhti.csc.fi:/scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/05.BAM/stats/all.mean_insert_sizes.txt .
 ## Locally, check in your favourite editor the inser size
 
+####### NOTE: The output txt-file contains the inser sizes per sample, e.g.
+### BBE1_MKDN250052002-1A_235LJ3LT4_L5       292.010742
+### The standard Illumina paired-end insert size is 150-300
+### 300–600 bp	would be a large-fragment library
+### <150 bp indicated degraded DNA or over-fragmentation
+### >600 bp	unusual, long-fragment library
 
+################
 ### Collect mapping rates per sample  --------------------
 cd /scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/05.BAM/nodupl/stats
 
@@ -115,3 +122,9 @@ paste tmp2 tmp1 > all.mapping_rates.txt ; rm *tmp*
 
 ## Download the mapping rates per sample and check them in your favourite editor.
 scp krapfpat@puhti.csc.fi:/scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/05.BAM/nodupl/stats/all.mapping_rates.txt .
+
+####### NOTE: The output txt-file contains the mapping rates per sample, e.g.
+### BBE1_MKDN250052002-1A_235LJ3LT4_L5       63830504 + 0 mapped (99.30%  NA)
+### It shows that the 99.30% of all reads in that BAM file have been aligned to the genome.
+### The remaining ~0.70% were unmapped, meaning they did not match the reference sufficiently (due to low quality, contamination, divergence, etc.).
+
