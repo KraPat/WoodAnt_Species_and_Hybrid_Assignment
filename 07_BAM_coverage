@@ -1,5 +1,7 @@
-## NOTE, after duplicate removal, we now compute the sequencing depth per sample 
-## For this, we use the "nodupl_name.list" created in step 06_Add_Read_Groups. We also need to create the subfolders "coverage" under nodupl/stats/coverage. Then we calculate the depth.
+## NOTE, after duplicate removal, we now compute the sequencing depth per sample.
+## The code calculates 10 kb windowed coverage for a BAM file, using 1 thread, excluding low-quality/secondary/supplementary reads, outputting only summary and region coverage files.
+## For this, we use the "nodupl_name.list" created in step 06_Add_Read_Groups.
+## We also need to create the subfolders "coverage" under /scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/05.BAM/stats. Then we calculate the depth.
 
 
 #!/bin/bash -l
