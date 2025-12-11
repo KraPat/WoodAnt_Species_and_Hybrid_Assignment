@@ -73,13 +73,14 @@ paste tmp2 tmp1 > all.no_overlap_correction.mosdepth.summary.txt
 rm *tmp*
 
 
-for i in RN???.mosdepth.summary.txt
- do echo $i ; grep 'Scaffold' $i | awk '{sum+=$4;} END{print sum/NR;}'
-done > all.no_overlap_correction.mosdepth.summary.tmp
+## Not needed to use this as this was a sample in Ina's data set
+#for i in RN???.mosdepth.summary.txt
+# do echo $i ; grep 'Scaffold' $i | awk '{sum+=$4;} END{print sum/NR;}'
+#done > all.no_overlap_correction.mosdepth.summary.tmp
 
-grep -v 'txt' all.no_overlap_correction.mosdepth.summary.tmp > tmp1
-grep 'txt' all.no_overlap_correction.mosdepth.summary.tmp | perl -npe 's/.mosdepth.summary.txt//' > tmp2
-paste tmp2 tmp1 > all.no_overlap_correction.mosdepth.summary.txt ; rm *tmp*
+#grep -v 'txt' all.no_overlap_correction.mosdepth.summary.tmp > tmp1
+#grep 'txt' all.no_overlap_correction.mosdepth.summary.tmp | perl -npe 's/.mosdepth.summary.txt//' > tmp2
+#paste tmp2 tmp1 > all.no_overlap_correction.mosdepth.summary.txt ; rm *tmp*
 
 ## Download to local machine
 #scp krapfpat@puhti.csc.fi:/scratch/project_2009316/Adriana/X204SC23115958-Z01-F001_01/05.BAM/stats/coverage/all.no_overlap_correction.mosdepth.summary.txt .
