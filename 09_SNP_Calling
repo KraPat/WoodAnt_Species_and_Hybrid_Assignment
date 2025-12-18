@@ -180,9 +180,39 @@ freebayes-puhti -time 72 -mem 64 -regions $REF/Formica_hybrid_v1_5e6_data_region
 # -E N=-1 disable complex variants #NOT USED CURRENTLY -  does it mess up w snpgap and vcfallelicprimitives later on?
 # --use-best-n-alleles 3 = reduce computational time to exclude multiple alternative alleles if present. Setting to 3 is safe since all but biallelic sites will be filtered out later on.
 
+
+## Now, we do some sanity checks.
+## For this, we use sinteractive and various tools:
+
 sinteractive --account project_2009316 --mem 2000
 cd /scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/06.VCF/raw
 module load biokit
+
+## 1. Quick format sanity check (fastest)
+## No output means that everything is okay
+bcftools view all_samples_raw.vcf > /dev/null
+## No output → VCF syntax is valid. If there are errors, this means there may be malformed lines, bad genotypes, or header issues
+
+## 2. Inspect the header
+bcftools view -h all_samples_raw.vcf
+## fileformat=VCFv4.2 (or similar) exists
+## source=freeBayes is present
+## FORMAT fields like GT, DP, AD, RO, AO are defined
+## Number of sample columns matches your expectations
+
+## 3. Check for illegal or suspicious variants
+bcftools norm -c w -f /scratch/project_2009316/refGenome/Formica_hybrid_v1_wFhyb_Sapis.fa all_samples_raw.vcf > /dev/null
+## This will warn (not modify) about: REF allele mismatches, invalid indels, malformed alleles
+
+## 4. Check chromosome naming
+bcftools query -f '%CHROM\n' all_samples_raw.vcf | sort | uniq
+## Look for chr1 vs 1 mixtures.
+
+bcftools sort -c all_samples_raw.vcf
+## If there is no output, then it is correclty sorted
+## If there are errors, it needs needs sorting
+
+## 5. Summary statistics
 bcftools stats all_samples_raw.vcf > all_samples_raw.stats
 
 
@@ -191,7 +221,7 @@ bcftools stats all_samples_raw.vcf > all_samples_raw.stats
 
 
 ###
-### Compress & sort
+### Sort & compress
 ###
 
 #!/bin/bash -l
@@ -208,19 +238,17 @@ bcftools stats all_samples_raw.vcf > all_samples_raw.stats
 module load biokit
 cd /scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/06.VCF/raw
 
-# Compress
-bgzip all_samples_raw.vcf #samtools version 1.16.1, containing HTSlib 1.16
-
 # Sort
-bcftools sort -m 1G -O z -o all_samples.vcf.gz -T ./tmp_sort all_samples_raw.vcf.gz
+bcftools sort -m 1G freebayes.vcf -Oz -o all_samples_raw.vcf.gz -T ./tmp_sort all_samples_raw.vcf.gz
+
+# Compress
+# bgzip all_samples_raw.vcf 
+#samtools version 1.16.1, containing HTSlib 1.16
 
 # Index
-tabix -p vcf all_samples.vcf.gz
-bcftools index -n all_samples.vcf.gz
+#tabix -p vcf all_samples.vcf.gz
+#bcftools index -n all_samples.vcf.gz
 
-gunzip -c all_samples.vcf.gz | grep -v "^#" | cut -f 1 | uniq -c > site_count_per_chromosome.tab
-
-
-
+#gunzip -c all_samples.vcf.gz | grep -v "^#" | cut -f 1 | uniq -c > site_count_per_chromosome.tab
 
 ### END
