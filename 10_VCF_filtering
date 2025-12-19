@@ -86,8 +86,6 @@ bcftools index -n all_samples.normalized.SnpGap_2.NonSNP.Balance.PASS.decomposed
 #!/bin/bash -l
 #SBATCH -J filt2
 #SBATCH --account=project_2009316
-#SBATCH -o /scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/06.VCF/logs/filt2.out
-#SBATCH -e /scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/06.VCF/logs/filt2.err
 #SBATCH -t 48:00:00
 #SBATCH -p small
 #SBATCH --ntasks 8
@@ -126,7 +124,10 @@ cut -f5 all_samples.normalized.SnpGap_2.NonSNP.Balance.PASS.decomposed.SNPQ30.bi
 ### 2.1.b. Compute mean DP per individual
 vcftools --depth --gzvcf all_samples.normalized.SnpGap_2.NonSNP.Balance.PASS.decomposed.SNPQ30.biall.fixedHeader.vcf.gz --out all_samples.normalized.SnpGap_2.NonSNP.Balance.PASS.decomposed.SNPQ30.biall.fixedHeader
 
+### end  script
 
+
+## NOTE: It may be that you need to calculate this on your local machine. Then you need to download this first, calculate it, and upload the "XY.MinMax" file after that.
 ### 2.1.c. Compute individual DP thresholds
 module load r-env
 Rscript minMaxDP.R
@@ -138,6 +139,16 @@ Rscript minMaxDP.R
       # dat$MAX_DEPTH = round((dat$MEAN_DEPTH)*2) # max depth is twice mean depth
       # write.table(dat, "all_samples.normalized.SnpGap_2.NonSNP.Balance.PASS.decomposed.SNPQ30.biall.fixedHeader.idepth.MinMax", col.names = T, row.names = F, quote = F, sep = "\t")
 
+## If you need to do it locally, follow these steps
+## 2.1.c1. 
+scp krapfpat@puhti.csc.fi:/scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/06.VCF/filt/all_samples.normalized.SnpGap_2.NonSNP.Balance.PASS.decomposed.SNPQ30.biall.fixedHeader.idepth ./
+
+## Run script in R
+...
+## If you run the script on a local Windows machine, make sure that you check the resulting file for tabs, justification, etc
+
+## Upload file to cluter
+scp ./all_samples.normalized.SnpGap_2.NonSNP.Balance.PASS.decomposed.SNPQ30.biall.fixedHeader.idepth.MinMax krapfpat@puhti.csc.fi:/scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/06.VCF/filt/all_samples.normalized.SnpGap_2.NonSNP.Balance.PASS.decomposed.SNPQ30.biall.fixedHeader.idepth.MinMax
 
 ### 2.1.d. Create results folder
 mkdir logs
@@ -154,12 +165,12 @@ sinteractive --account project_2009316 --mem 8000
 module load biokit
 vcf-query -l all_samples.normalized.SnpGap_2.NonSNP.Balance.PASS.decomposed.SNPQ30.biall.vcf.gz > ind.list
 
-### end script
+### end  script
 
 ######################################################## END script 2a
 
 
-
+## Note, change array number to number of samples in "ind.list"
 ######################################################## Beginning script 2b, called "12b_splitDP.sh"
 
 #!/bin/bash -l
@@ -169,7 +180,7 @@ vcf-query -l all_samples.normalized.SnpGap_2.NonSNP.Balance.PASS.decomposed.SNPQ
 #SBATCH -e /scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/06.VCF/logs/splitDP_%a.err
 #SBATCH -t 24:00:00
 #SBATCH -p small
-#SBATCH --array=1-20
+#SBATCH --array=1-38
 #SBATCH --ntasks 1
 #SBATCH --mem=2G
 #SBATCH --mail-type=BEGIN,END,FAIL
@@ -191,6 +202,7 @@ echo "Processing individual $ind with $dpmin < DP <= $dpmax"
 bcftools view -s ${ind} -Ou /scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/06.VCF/filt/all_samples.normalized.SnpGap_2.NonSNP.Balance.PASS.decomposed.SNPQ30.biall.fixedHeader.vcf.gz | bcftools filter -e "FORMAT/DP < ${dpmin} | FORMAT/DP >= ${dpmax}" --set-GTs . -Oz > ${ind}.vcf.gz &&
 bcftools index -t ${ind}.vcf.gz
 
+## End script 
 ######################################################## End script 2b
 
 
@@ -329,6 +341,7 @@ for i in *percMiss.vcf.gz ; do
   vcftools --gzvcf ${i} --missing-indv --out ${i%.vcf.gz}
 done
 
+## End script
 ######################################################## End script 3
 
 
@@ -392,7 +405,7 @@ vcftools --gzvcf $VCFIN --not-chr Scaffold03 --recode --recode-INFO-all --stdout
 bcftools index -t DP8.AN10.noScaff0003.vcf.gz 
 
 
-################################### Beginning script 5, called "filter_mac_thin.sh"
+################################### Beginning script 5, called "15_filter_mac_thin.sh"
 
 #!/bin/bash -l
 #SBATCH -J filter_mac_thin
