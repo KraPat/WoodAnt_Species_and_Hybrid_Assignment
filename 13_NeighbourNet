@@ -1,0 +1,185 @@
+## WORK IN PROGRESS ###
+
+#This is to construct a phylogenetic network based on NeighbourNet approach (loosely based on the neighbor joining algorithm). 
+#The input is a distance matrix and the algorithm works by agglomerating clusters, and it is run using SplitsTree with default parameters.
+#The script follows the pipeline in SH Martin et al. 2019 (https://doi.org/10.1371/journal.pbio.2006288).
+#https://github.com/simonhmartin/genomics_general/blob/master/genomics.py
+#https://github.com/simonhmartin/genomics_general/blob/master/distMat.py
+#https://github.com/simonhmartin/genomics_general/blob/master/VCF_processing/parseVCF.py
+
+
+#USE 20KB THINNED (MAC2 FILTERED) VCF (to replicate Satokangas et al 2023), inspect amount of missing data.
+VCFPATH=/scratch/project_2009316/Adriana/X204SC23115958-Z01-F001_01/06.VCF/filt/
+VCFIN=DP8.AN10.noScaff0003.mac2.thin20kb.vcf.gz
+
+vcftools --gzvcf $VCFPATH/$VCFIN --missing-indv --out $VCFPATH/${VCFIN}.missing
+sort -k 5 $VCFPATH/${VCFIN}.missing.imiss | column -t #all inds have less than 50% missing data; keep all
+
+cd /scratch/project_2009316/Adriana/X204SC23115958-Z01-F001_01/06.VCF/NeigbourNet
+
+
+#!/bin/bash -l
+#SBATCH -J geno_20kbthin
+#SBATCH --account=project_2009316
+#SBATCH -t 04:00:00
+#SBATCH -p small
+#SBATCH --mem=50G
+#SBATCH --output=/scratch/project_2009316/Adriana/X204SC23115958-Z01-F001_01/06.VCF/logs/geno_20kbthin_%j.out
+#SBATCH --error=/scratch/project_2009316/Adriana/X204SC23115958-Z01-F001_01/06.VCF/logs/geno_20kbthin_%j.err
+
+module load biokit
+module load python-data
+
+cd /scratch/project_2009316/Adriana/X204SC23115958-Z01-F001_01/06.VCF/NeigbourNet
+
+VCFPATH=/scratch/project_2009316/Adriana/X204SC23115958-Z01-F001_01/06.VCF/filt/
+FILTVCF=DP8.AN10.noScaff0003.mac2.thin20kb.vcf.gz 
+GENO=DP8.AN10.noScaff0003.mac2.thin20kb.vcf.gz
+DISTMAT=DP8.AN10.noScaff0003.mac2.thin20kb.dist
+
+# do it
+
+python /scratch/project_2009316/Adriana/X204SC23115958-Z01-F001_01/parseVCF.py -i $VCFPATH/$FILTVCF | bgzip > $GENO &&
+python /scratch/project_2009316/Adriana/X204SC23115958-Z01-F001_01/distMat.py -g $GENO -f phased --windType cat -o $DISTMAT
+
+# THIS IS THE END.
+#----
+
+scp satokan1@puhti.csc.fi:'/scratch/project_2001443/barriers_introgr_formica/gen_str/neighbornet/*.dist' '/Users/inaukkar/Library/CloudStorage/OneDrive-UniversityofHelsinki/PhD/4_formica_local_genomics/gen_str/neighbornet/'
+
+# (If needed: Modify the sample names so that Finnish ones have only the number and from Pierre's samples
+#  only "Lai" has the 1/2w extension: done manually; find&replace in Atom)
+# -> done; see file DP8AN10.NoScaff0003.mac2.noInds417.418.105.110.353.354_numonly.dist
+
+# Open SplitsTree, and draw the tree with default settings.
+# Works in a few seconds; just import the file and the tree will appear.
+
+# In splitstree:
+# node shape: circle, size 5 (Edit -> select labeled nodes; View -> Format nodes and edges.
+
+
+### THESIS MANUSCRIPT ENDS HERE ###
+#--------------------------------------------------------
+
+
+
+
+
+
+### THE INITIAL EXPLORATION BEGINS HERE - IGNORE
+
+cd /scratch/project_2001443/barriers_introgr_formica/gen_str/neighbornet
+
+### 1. Update the code
+
+git clone https://github.com/simonhmartin/genomics_general.git
+
+### 2. Remove singletons from the full vcf, create a a geno-file and a distance matrix from VCFs with different min DP filtering thresholds (DP5, DP6, DP7, DP8)
+# KEEP SCAFFFOLD03 AND DO NOT THIN. DO MAC2, REMOVE 105-FaquH AND 110-FaquH
+
+### LATER ON REMOVE ALSO SEIFERT'S SAMPLES AND DECIDE ON WHETHER TO KEEP Pus2_1w OR 104-Faqu ###
+
+#Run the DP5 data first to try it out
+#(the job took 2:30hrs / 45GB)
+
+--------
+
+#!/bin/bash -l
+#SBATCH -J mac2_geno_DP5
+#SBATCH --account=project_2001443
+#SBATCH -t 24:00:00
+#SBATCH -p small
+#SBATCH --mem=70G
+#SBATCH --mail-type=END
+
+module load biokit
+module load python-data
+
+cd /scratch/project_2001443/barriers_introgr_formica/gen_str/neighbornet
+
+VCFPATH=/scratch/project_2001443/barriers_introgr_formica/vcf/filt/
+GENO5=all_samples.DP5.hwe.AN10.noScaff00.mac2.geno.gz
+DISTMAT5=all_samples.DP5.hwe.AN10.noScaff00.mac2.dist
+
+# do it
+
+python ./genomics_general/distMat.py -g $GENO5 -f phased --windType cat -o $DISTMAT5
+
+# THIS IS THE END.
+
+
+---------
+
+#Run the rest of the files as a batch job: 
+#(the batch job took 3:30hrs (10:30hrs core-walltime), ca 40GB mem)
+----------------------------------
+
+#!/bin/bash -l
+#SBATCH -J mac2_geno
+#SBATCH --account=project_2001443
+#SBATCH -t 5:00:00
+#SBATCH -p small
+#SBATCH --ntasks=3
+#SBATCH --nodes=1
+#SBATCH --mem=70G
+#SBATCH --mail-type=END
+
+module load biokit
+module load python-data
+
+cd /scratch/project_2001443/barriers_introgr_formica/gen_str/neighbornet
+
+VCFPATH=/scratch/project_2001443/barriers_introgr_formica/vcf/filt/
+
+FULLVCF6=all_samples.normalized.SnpGap_2.NonSNP.Balance.PASS.decomposed.SNPQ30.biall.fixedHeader.minDP6.hwe.AN10percMiss.vcf.gz
+FULLVCF7=all_samples.normalized.SnpGap_2.NonSNP.Balance.PASS.decomposed.SNPQ30.biall.fixedHeader.minDP7.hwe.AN10percMiss.vcf.gz
+FULLVCF8=all_samples.normalized.SnpGap_2.NonSNP.Balance.PASS.decomposed.SNPQ30.biall.fixedHeader.minDP8.hwe.AN10percMiss.vcf.gz
+
+FILTVCF6=all_samples.DP6.hwe.AN10.noScaff00.mac2.vcf.gz
+FILTVCF7=all_samples.DP7.hwe.AN10.noScaff00.mac2.vcf.gz
+FILTVCF8=all_samples.DP8.hwe.AN10.noScaff00.mac2.vcf.gz
+
+GENO6=all_samples.DP6.hwe.AN10.noScaff00.mac2.geno.gz
+GENO7=all_samples.DP7.hwe.AN10.noScaff00.mac2.geno.gz
+GENO8=all_samples.DP8.hwe.AN10.noScaff00.mac2.geno.gz
+
+DISTMAT6=all_samples.DP6.hwe.AN10.noScaff00.mac2.dist
+DISTMAT7=all_samples.DP7.hwe.AN10.noScaff00.mac2.dist
+DISTMAT8=all_samples.DP8.hwe.AN10.noScaff00.mac2.dist
+
+# do it
+
+vcftools --gzvcf $VCFPATH/$FULLVCF6 --remove-indv 105-FaquH --remove-indv 110-FaquH --mac 2 --recode --stdout | bgzip > $VCFPATH/$FILTVCF6 &&
+bcftools index -t $VCFPATH/$FILTVCF6 &&
+python ./genomics_general/VCF_processing/parseVCF.py -i $VCFPATH/$FILTVCF6 | bgzip > $GENO6 &&
+python ./genomics_general/distMat.py -g $GENO6 -f phased --windType cat -o $DISTMAT6
+
+vcftools --gzvcf $VCFPATH/$FULLVCF7 --remove-indv 105-FaquH --remove-indv 110-FaquH --mac 2 --recode --stdout | bgzip > $VCFPATH/$FILTVCF7 &&
+bcftools index -t $VCFPATH/$FILTVCF7 &&
+python ./genomics_general/VCF_processing/parseVCF.py -i $VCFPATH/$FILTVCF7 | bgzip > $GENO7 &&
+python ./genomics_general/distMat.py -g $GENO7 -f phased --windType cat -o $DISTMAT7
+
+vcftools --gzvcf $VCFPATH/$FULLVCF8 --remove-indv 105-FaquH --remove-indv 110-FaquH --mac 2 --recode --stdout | bgzip > $VCFPATH/$FILTVCF8 &&
+bcftools index -t $VCFPATH/$FILTVCF8 &&
+python ./genomics_general/VCF_processing/parseVCF.py -i $VCFPATH/$FILTVCF8 | bgzip > $GENO8 &&
+python ./genomics_general/distMat.py -g $GENO8 -f phased --windType cat -o $DISTMAT8
+
+# THIS IS THE END.
+
+----------------------------------
+
+
+
+### 3. Download the .dist file to local
+
+scp krapfpat@puhti.csc.fi:/scratch/project_2009316/Adriana/X204SC23115958-Z01-F001_01/06.VCF/NeigbourNet/*.dist .
+
+
+# (If needed: Modify the sample names so that Finnish ones have only the number and from Pierre's samples
+#  only "Lai" has the 1/2w extension: done manually; find&replace in Atom)
+
+# Open SplitsTree, and draw the tree with default settings.
+# Works in a few seconds; just import the file and the tree will appear.
+
+# In splitstree:
+# node shape: circle, size 5
