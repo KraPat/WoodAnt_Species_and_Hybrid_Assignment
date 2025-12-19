@@ -181,7 +181,7 @@ freebayes-puhti -time 72 -mem 64 -regions $REF/Formica_hybrid_v1_5e6_data_region
 # --use-best-n-alleles 3 = reduce computational time to exclude multiple alternative alleles if present. Setting to 3 is safe since all but biallelic sites will be filtered out later on.
 
 
-## Now, we do some sanity checks.
+############# After the SNP calling, we do some sanity checks.
 ## For this, we use sinteractive and various tools:
 
 sinteractive --account project_2009316 --mem 2000
@@ -214,11 +214,12 @@ bcftools sort -c all_samples_raw.vcf
 
 ## 5. Summary statistics
 bcftools stats all_samples_raw.vcf > all_samples_raw.stats
+## In the "all_samples_raw.stats" file, information on the number of SNPs, InDels, etc is stored.
 
 
 ###############################################################
-##Below, we compress and sort the VCF file. 
-
+## Next, we first sort, then compress the VCF file, and lastly index it. 
+## We use the script below and run it on the cluster
 
 ###
 ### Sort & compress
@@ -238,17 +239,18 @@ bcftools stats all_samples_raw.vcf > all_samples_raw.stats
 module load biokit
 cd /scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/06.VCF/raw
 
-# Sort
+# In the next step we "Sort" and "compress" the VCF file in one step.
 bcftools sort -m 1G freebayes.vcf -Oz -o all_samples_raw.vcf.gz -T ./tmp_sort all_samples_raw.vcf.gz
 
-# Compress
-# bgzip all_samples_raw.vcf 
+## Compress
+## bgzip all_samples_raw.vcf 
 #samtools version 1.16.1, containing HTSlib 1.16
+#This step is actually not needed as we already compressed it above when sorting!
 
 # Index
-#tabix -p vcf all_samples.vcf.gz
-#bcftools index -n all_samples.vcf.gz
+tabix -p vcf all_samples_raw.vcf.gz
+bcftools index -n all_samples_raw.vcf.gz
 
-#gunzip -c all_samples.vcf.gz | grep -v "^#" | cut -f 1 | uniq -c > site_count_per_chromosome.tab
+gunzip -c all_samples_raw.vcf.gz | grep -v "^#" | cut -f 1 | uniq -c > site_count_per_chromosome.tab
 
 ### END
