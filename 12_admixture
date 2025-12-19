@@ -1,15 +1,16 @@
-########### INFO NEEDED
+## In this script, we will create an admixture calculation and plot.
+## First, we need to create an "admixture" folder under "scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/filt/"
+## We then create bim, bed, fam, and log files, script "12a_prep-f-admixture"
+## Then run the "admixture.sh"
 
-
-Run script 9.2_prep-f-admixture and then script admixture.sh
-
-9.2_prep-f-admixture, code below. It creates the blink bim, bed, fam, log files
+## 12a_prep-f-admixture, code below
+## It creates the blink bim, bed, fam, log files
 sinteractive --account project_2009316 --mem 2000
 module load biokit
 module load plink
 
-VCF=/scratch/project_2009316/vcf/raw/DP8.186inds.AN10.noScaff0003.mac2.vcf.gz
-OUTVCF=/scratch/project_2009316/vcf/raw/DP8.186inds.AN10.noScaff0003.mac2_thin20kb.vcf.gz
+VCF=/scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/filt/XXXXXXXXXXX_DP8.186inds.AN10.noScaff0003.mac2.vcf.gz
+OUTVCF=/scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/filt/XXXXXXXXXXX_DP8.186inds.AN10.noScaff0003.mac2_thin20kb.vcf.gz
 
 #Thin the VCF with 20kb distances to reduce linkage
 vcftools --gzvcf $VCF --thin 20000 --recode --stdout | bgzip > $OUTVCF
@@ -19,28 +20,30 @@ bcftools index -n $OUTVCF #9279 SNPs
 # Convert the VCF ("OUTVCF") into PLINK format for ADMIXTURE analysis and keep only the desired individuals (in "LIST")
 
 LIST=balanced_sample_list.list
-plink2 --threads 1 --vcf $OUTVCF --make-bed --double-id --allow-extra-chr --set-missing-var-ids @:# --out /scratch/project_2009316/vcf/raw/admixture/DP8.186inds.AN10.noScaff0003.mac2_thin20kb
+plink2 --threads 1 --vcf $OUTVCF --make-bed --double-id --allow-extra-chr --set-missing-var-ids @:# --out /scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/admixture/DP8.186inds.AN10.noScaff0003.mac2_thin20kb
 
 # ADMIXTURE doesn't accept non-human chromosome names. Replace the first column by 0.
 cd admixture
 awk '{$1=0;print $0}' DP8.186inds.AN10.noScaff0003.mac2_thin20kb.bim >DP8.186inds.AN10.noScaff0003.mac2_thin20kb.bim.tmp
 mv DP8.186inds.AN10.noScaff0003.mac2_thin20kb.bim.tmp DP8.186inds.AN10.noScaff0003.mac2_thin20kb.bim.bim
 
-#Now, run sbatch 9.3_admixture.sh inside the admixture folder, where the bed files are stored.
+
+###############################
+## Now, we run sbatch 9.3_admixture.sh inside the admixture folder, where the bed files are stored.
 #Here, for each K, the P and Q files are created as well as the log files.
 
 Plotting
 #Before creating the PDF or TIFF of the admixture plot is possible, we need to create a "plotting list".  To do so, we need to download the fam files as well as the P and Q files.
-scp krapfpat@puhti.csc.fi:/scratch/project_2009316/vcf/raw/Samples257_skipCov50k_2/results/admixture/* ./
+scp krapfpat@puhti.csc.fi:/scratch/project_2009316/project_2009316/DutchSamples/X204SC23115958-Z01-F008/admixture/* ./
 AND
 scp krapfpat@puhti.csc.fi:/scratch/project_2009316/vcf/raw/Samples257_skipCov50k_2/results/admixture/Samples257_DP8.246inds.AN10.noScaff00-03.mac2.thin20kb.plink.fam ./
 #ALL now under 
-C:\Users\krapf\OneDrive\D_Uni\Formica_ants\Sequencing\5_Seq_results\2_Analyses\5_admixture\257_to_246inds
+C:\Users\...
 
 Now, in R, under "HEW.filtering.R", run the code and see the descruptions to create the plotting list!
 Then, upload the file:
 #Upload the plottign list file to PUHTI
-scp ./Genomicdata/Samples257_DP8.246inds.AN10.noScaff00-03.mac2.thin20kb.plink.plotting.list krapfpat@puhti.csc.fi:/scratch/project_2009316/vcf/raw/Samples257_skipCov50k_2/results/admixture/Samples257_DP8.246inds.AN10.noScaff00-03.mac2.thin20kb.plink.plotting.list
+scp ./Genomicdata/Samples257_DP8.246inds.AN10.noScaff00-03.mac2.thin20kb.plink.plotting.list krapfpat@puhti.csc.fi:/scratch/project_2009316/project_2009316/DutchSamples/X204SC23115958-Z01-F008/filt/admixture/Samples257_DP8.246inds.AN10.noScaff00-03.mac2.thin20kb.plink.plotting.list
 
 Now, run R script interactively on Puhti:
 sinteractive -A project_2009316 -c 1 -d 4 -m 1000 -t 00:30:00
@@ -54,7 +57,7 @@ Rscript "./plotADMIXTURE_K.R" -p $ADMFILE -i $ADMLIST -m 2 -k 9 -l prat,rufa,pol
 #Note: -l is the species names in the plotting list file
 
 Download data
-scp krapfpat@puhti.csc.fi:/scratch/project_2009316/vcf/raw/Samples257_skipCov50k_2/results/admixture/*pdf ./
+scp krapfpat@puhti.csc.fi:/scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/filt/results/admixture/*pdf ./
 
 Rscript "./plotADMIXTURE_Ina.R" -p $ADMFILE -i $ADMLIST -m 2 -k 6 -l prat,rufa,poly,aqui,lug,admixed1,admixed2,NA -o ${ADMFILE}
 
