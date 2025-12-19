@@ -1,0 +1,194 @@
+## Below, we use the VCF file generated in the previous steps to conduct a PCA with plink software.
+## IF there are 50 samples or more in the VCF file, we can use plink (using sinteractive) to create a PCA. 
+## If not, we need to use "SNPRelated" in R on the cluster to create the PCA.
+## At the end, we download the data to our local machine using "scp" and work on the local machine.
+
+############  CLUSTER script ###############################################################
+## SCRIPT start sinteractive
+
+sinteractive --account project_2009316 --mem 3000
+module load biokit
+module load plink
+
+cd /scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/06.VCF/pca
+OUTPATH=/scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/06.VCF/pca
+
+# Path to the filtered VCF (social chromosome excluded, 20 kb thinning)
+VCF=/scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/06.VCF/filt/DP8.AN10.noScaff0003.mac2.thin20kb.vcf.gz
+
+# Run PCA with PLINK 
+plink --threads 1 \
+      --vcf $VCF \
+      --double-id \
+      --allow-extra-chr \
+      --set-missing-var-ids @:# \
+      --pca header var-wts \
+      --out $OUTPATH/all_samples_DP8_PCA
+
+plink2 \
+    --threads 1 \
+    --vcf $VCF \
+    --double-id \
+    --allow-extra-chr \
+    --set-missing-var-ids @:# \
+    --pca 20 approx \
+    --out $OUTPATH/all_samples_DP8_PCA
+#too small sample size - need at least 50
+
+############# END of CLUSTER sinteractive script ############################################################
+
+## OR ##
+
+##########  R script ###############################################################
+## If there are less than 50 samples in the VCF file, we need to run it in R using the package "SNPRelate".
+## Below is the script, which we run on the cluster using Rscript /scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/run_pca_snprelate.R
+## The name of the script is "run_pca_snprelate.R"
+
+library(SNPRelate)
+
+# Define input and output paths
+vcf.fn <- "/scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/06.VCF/filt/DP8.AN10.noScaff0003.mac2.thin20kb.vcf.gz"
+gds.fn <- "/scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/06.VCF/pca/DP8.gds"
+out.prefix <- "/scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/06.VCF/pca/DP8_PCA"
+
+cat("=== Converting VCF to GDS ===\n")
+snpgdsVCF2GDS(vcf.fn, gds.fn, method="copy.num.of.ref")
+
+cat("=== Opening GDS file ===\n")
+genofile <- snpgdsOpen(gds.fn)
+
+cat("=== Checking SNP summary ===\n")
+print(snpgdsSummary(genofile))
+
+cat("=== Running PCA ===\n")
+pca <- snpgdsPCA(genofile, num.thread=1, autosome.only=FALSE)
+pc.percent <- pca$varprop * 100
+
+# Save PCA results
+pca.df <- data.frame(
+  sample = pca$sample.id,
+  PC1 = pca$eigenvect[,1],
+  PC2 = pca$eigenvect[,2],
+  PC3 = pca$eigenvect[,3],
+  PC4 = pca$eigenvect[,4],
+  stringsAsFactors = FALSE
+)
+
+write.csv(pca.df, paste0(out.prefix, "_scores.csv"), row.names = FALSE)
+write.csv(round(pc.percent, 2), paste0(out.prefix, "_variance.csv"), row.names = FALSE)
+
+cat("=== PCA completed successfully ===\n")
+snpgdsClose(genofile)
+
+############# END of R script ############################################################
+
+
+## Now, we use this R script pn the cluster using sinteractive
+
+sinteractive --account project_2009316 --mem 3000
+module load biokit
+
+cd /scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/06.VCF/filt
+bcftools view /scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/06.VCF/filt/DP8.AN10.noScaff0003.mac2.thin20kb.vcf.gz \
+  | sed 's/old//g' \
+  | bcftools view -Oz -o DP8.cleaned.vcf.gz
+
+bcftools index DP8.cleaned.vcf.gz
+
+
+## Now, we create the PCA using a batch script
+######## SCRIPT BEGINS ######## 
+
+#!/bin/bash
+#SBATCH --job-name=PCA
+#SBATCH --account=project_2009316
+#SBATCH --output=/scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/06.VCF/logs/pca_snprelate_%j.out
+#SBATCH --error=/scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/06.VCF/logs/pca_snprelate_%j.err
+#SBATCH --partition=small
+#SBATCH --time=02:00:00
+#SBATCH --mem=8000
+#SBATCH --mail-type=BEGIN,END,FAIL
+
+module load r-env
+
+# Run the R script
+Rscript /scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/run_pca_snprelate.R
+
+
+########## END OF R-BASH SCRIPT #####################
+
+
+## Now, we download the data to our local machine and plot it in R locally
+## Download
+scp krapfpat@puhti.csc.fi:/scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/06.VCF/pca .
+
+## Now, open in R and plot it there. The code below is for consistency presented here but run locally.
+#### Plotting in R ####
+
+#-----------------------------------
+# PCA_Visualization.R
+#-----------------------------------
+
+# Load required library
+library(ggplot2)
+
+#-------------------------
+# Set file paths (update if needed)
+#-------------------------
+pca_scores_file <- "DP8_PCA_scores.csv"
+pca_variance_file <- "DP8_PCA_variance.csv"
+
+#-------------------------
+# Load data
+#-------------------------
+pca.df <- read.csv(pca_scores_file, stringsAsFactors = FALSE)
+var <- read.csv(pca_variance_file, header = FALSE, stringsAsFactors = FALSE)
+
+# Convert variance percentages to numeric
+pc_var <- as.numeric(var$V1[!is.na(as.numeric(var$V1))])
+
+#-------------------------
+# Plot PC1 vs PC2
+#-------------------------
+ggplot(pca.df, aes(x = PC1, y = PC2, label = sample)) +
+  geom_point(size = 3, color = "steelblue") +
+  geom_text(vjust = 2, size = 3) +
+  xlab(paste0("PC1 (", round(pc_var[1], 2), "%)")) +
+  ylab(paste0("PC2 (", round(pc_var[2], 2), "%)")) +
+  theme_minimal() +
+  ggtitle("PCA: PC1 vs PC2")
+
+#-------------------------
+# Optional: Plot PC1 vs PC3
+#-------------------------
+
+ggplot(pca.df, aes(x = PC1, y = PC3, label = sample)) +
+  geom_point(size = 3, color = "darkorange") +
+  geom_text(vjust = 2, size = 3) +
+  xlab(paste0("PC1 (", round(pc_var[1], 2), "%)")) +
+  ylab(paste0("PC3 (", round(pc_var[3], 2), "%)")) +
+  theme_minimal() +
+  ggtitle("PCA: PC1 vs PC3")
+
+#### THE PCA SHOULD BE RUN AGAIN AFTER EXCLUDING SOME SAMPLES!!
+# therefor the bellow part is not correct
+
+pca.df.filtered <- subset(pca.df, !grepl("Fprat", sample))
+
+# PC1 vs PC2
+ggplot(pca.df.filtered, aes(x = PC1, y = PC2, label = sample)) +
+  geom_point(size = 3, color = "steelblue") +
+  geom_text(vjust = 2, size = 3) +
+  xlab(paste0("PC1 (", round(pc_var[1], 2), "%)")) +
+  ylab(paste0("PC2 (", round(pc_var[2], 2), "%)")) +
+  theme_minimal() +
+  ggtitle("PCA: PC1 vs PC2")
+
+# PC1 vs PC3
+ggplot(pca.df.filtered, aes(x = PC1, y = PC3, label = sample)) +
+  geom_point(size = 3, color = "darkorange") +
+  geom_text(vjust = 2, size = 3) +
+  xlab(paste0("PC1 (", round(pc_var[1], 2), "%)")) +
+  ylab(paste0("PC3 (", round(pc_var[3], 2), "%)")) +
+  theme_minimal() +
+  ggtitle("PCA: PC1 vs PC3")
