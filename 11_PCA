@@ -14,7 +14,7 @@ cd /scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/06.VCF/pca
 OUTPATH=/scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/06.VCF/pca
 
 # Path to the filtered VCF (social chromosome excluded, 20 kb thinning)
-VCF=/scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/06.VCF/filt/DP8.AN10.noScaff0003.mac2.thin20kb.vcf.gz
+VCF=/scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/06.VCF/filt/all_samples_DP8.AN10.noScaff0003.mac2.thin20kb.vcf.gz
 
 # Run PCA with PLINK 
 plink --threads 1 \
@@ -47,7 +47,7 @@ plink2 \
 library(SNPRelate)
 
 # Define input and output paths
-vcf.fn <- "/scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/06.VCF/filt/DP8.AN10.noScaff0003.mac2.thin20kb.vcf.gz"
+vcf.fn <- "/scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/06.VCF/filt/all_samples_DP8.AN10.noScaff0003.mac2.thin20kb.vcf.gz"
 gds.fn <- "/scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/06.VCF/pca/DP8.gds"
 out.prefix <- "/scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/06.VCF/pca/DP8_PCA"
 
@@ -91,9 +91,9 @@ module load biokit
 cd /scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/06.VCF/filt
 bcftools view /scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/06.VCF/filt/DP8.AN10.noScaff0003.mac2.thin20kb.vcf.gz \
   | sed 's/old//g' \
-  | bcftools view -Oz -o DP8.cleaned.vcf.gz
+  | bcftools view -Oz -o all_samples_DP8.cleaned.vcf.gz
 
-bcftools index DP8.cleaned.vcf.gz
+bcftools index all_samples_DP8.cleaned.vcf.gz
 
 
 ## Now, we create the PCA using a batch script
@@ -135,8 +135,8 @@ library(ggplot2)
 #-------------------------
 # Set file paths (update if needed)
 #-------------------------
-pca_scores_file <- "DP8_PCA_scores.csv"
-pca_variance_file <- "DP8_PCA_variance.csv"
+pca_scores_file <- "all_samples_DP8_PCA_scores.csv"
+pca_variance_file <- "all_samples_DP8_PCA_variance.csv"
 
 #-------------------------
 # Load data
