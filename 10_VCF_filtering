@@ -404,8 +404,18 @@ bcftools index -n $VCF3
 ###END.
 
 
+## OUTPUT
+#number of inds when should be 37...
+#37
+#number of variants kept out of possible  sites ..
+#3,026,703
+#number of variants after AN filtering...
+#1,262,902
+
+
 ###############################################################################    STEP 5) Filter ##########################
-## First, we will exclude Scaffold03, in wich the social chromosome is present. We also indicate this in the filename. Later, we may also want to exclude Scaffold00, which is a scaffold to which sequences are aligned that do not fit other scaffolds. 
+## In the next step, we will exclude Scaffold03, in which the social chromosome is present. We also indicate this in the filename.
+## Later, we may also want to exclude Scaffold00, which is a fake scaffold to which sequences are aligned that do not fit other scaffolds. 
 ## We will use siteractive to exclude scaffold 03.
 ## Then, we will run a script for thinning the vcf file.
 
@@ -413,10 +423,26 @@ sinteractive --account project_2009316 --mem 8000
 cd /scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/06.VCF/filt
 module load biokit
 
-VCFIN=all_samples.normalized.SnpGap_2.NonSNP.Balance.PASS.decomposed.SNPQ30.biall.fixedHeader.minDP8.hwe.vcf.gz
+VCFIN=all_samples.normalized.SnpGap_2.NonSNP.Balance.PASS.decomposed.SNPQ30.biall.fixedHeader.minDP8.hwe.37inds.vcf.gz
 
-vcftools --gzvcf $VCFIN --not-chr Scaffold03 --recode --recode-INFO-all --stdout | bgzip > DP8.AN10.noScaff0003.vcf.gz       # Not directly for any analyses
-bcftools index -t DP8.AN10.noScaff0003.vcf.gz 
+## The code below now excludes "Scaffold03" and then indexes the VCF file
+vcftools --gzvcf $VCFIN --not-chr Scaffold03 --recode --recode-INFO-all --stdout | bgzip > all_samples_DP8.AN10.noScaff03.vcf.gz      
+bcftools index -t all_samples_DP8.AN10.noScaff03.vcf.gz
+
+## The code below now excludes "Scaffold003" and then indexes the VCF file
+VCFIN=all_samples_DP8.AN10.noScaff03.vcf.gz   
+vcftools --gzvcf $VCFIN --not-chr Scaffold00 --recode --recode-INFO-all --stdout | bgzip > all_samples_DP8.AN10.noScaff0003.vcf.gz      
+bcftools index -t all_samples_DP8.AN10.noScaff0003.vcf.gz
+## Note, you could also exclude both at the same time by using the code "vcftools --gzvcf $VCFIN --not-chr Scaffold00 --not-chr Scaffold03 --recode --recode-INFO-all --stdout | bgzip > all_samples_DP8.AN10.noScaff0003.vcf.gz"
+exit #to exit sinteractive
+
+## To check if this worked, you can run the code below
+bcftools stats all_samples_DP8.AN10.noScaff03.vcf.gz | grep "Scaffold03"
+bcftools stats all_samples_DP8.AN10.noScaff0003.vcf.gz | grep "Scaffold00"
+# There should be no output (zero variants)! It is still present in the header though!
+
+
+## Note, this VCF file cannot be directly used for analyses but needs to undergo a few more thinning steps, see below.
 
 
 ################################### Beginning script 5, called "10f_filter_mac_thin.sh"
@@ -436,24 +462,25 @@ cd /scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/06.VCF/filt
 module load biokit
 
 # First, we select only 2-allelic SNPS
-vcftools --gzvcf DP8.AN10.noScaff0003.vcf.gz --mac 2 --recode --recode-INFO-all --stdout | bgzip >  DP8.AN10.noScaff0003.mac2.vcf.gz       
-bcftools index -t DP8.AN10.noScaff0003.mac2.vcf.gz 
-echo "number of variants in DP8.AN10.noScaff0003.mac2.vcf.gz..."
-bcftools index -n DP8.AN10.noScaff0003.mac2.vcf.gz 
+vcftools --gzvcf all_samples_DP8.AN10.noScaff0003.vcf.gz --mac 2 --recode --recode-INFO-all --stdout | bgzip > all_samples_DP8.AN10.noScaff0003.mac2.vcf.gz       
+bcftools index -t all_samples_DP8.AN10.noScaff0003.mac2.vcf.gz 
+echo "number of variants in all_samples_DP8.AN10.noScaff0003.mac2.vcf.gz..."
+bcftools index -n all_samples_DP8.AN10.noScaff0003.mac2.vcf.gz 
 
-## Second, we thin wiht 20kb windows
-vcftools --gzvcf DP8.AN10.noScaff0003.mac2.vcf.gz --thin 20000 --recode --recode-INFO-all --stdout | bgzip >  DP8.AN10.noScaff0003.mac2.thin20kb.vcf.gz       
-bcftools index -t DP8.AN10.noScaff0003.mac2.thin20kb.vcf.gz
-echo "number of variants in DP8.AN10.noScaff0003.mac2.thin20kb.vcf.gz..."
-bcftools index -n DP8.AN10.noScaff0003.mac2.thin20kb.vcf.gz
+## Second, we thin with 20kb windows
+vcftools --gzvcf all_samples_DP8.AN10.noScaff0003.mac2.vcf.gz --thin 20000 --recode --recode-INFO-all --stdout | bgzip > all_samples_DP8.AN10.noScaff0003.mac2.thin20kb.vcf.gz       
+bcftools index -t all_samples_DP8.AN10.noScaff0003.mac2.thin20kb.vcf.gz
+echo "number of variants in all_samples_DP8.AN10.noScaff0003.mac2.thin20kb.vcf.gz..."
+bcftools index -n all_samples_DP8.AN10.noScaff0003.mac2.thin20kb.vcf.gz
 
 ## Here, we thin for the NJtree using 1kb windows
-vcftools --gzvcf DP8.AN10.noScaff0003.mac2.vcf.gz --thin 1000 --recode --recode-INFO-all --stdout | bgzip >  DP8.AN10.noScaff0003.mac2.thin1kb.vcf.gz       
-bcftools index -t DP8.AN10.noScaff0003.mac2.thin1kb.vcf.gz  
-echo "number of variants in DP8.AN10.noScaff0003.mac2.thin1kb.vcf.gz  ..."
-bcftools index -n DP8.AN10.noScaff0003.mac2.thin1kb.vcf.gz  
+vcftools --gzvcf all_samples_DP8.AN10.noScaff0003.mac2.vcf.gz --thin 1000 --recode --recode-INFO-all --stdout | bgzip > all_samples_DP8.AN10.noScaff0003.mac2.thin1kb.vcf.gz       
+bcftools index -t all_samples_DP8.AN10.noScaff0003.mac2.thin1kb.vcf.gz  
+echo "number of variants in all_samples_DP8.AN10.noScaff0003.mac2.thin1kb.vcf.gz  ..."
+bcftools index -n all_samples_DP8.AN10.noScaff0003.mac2.thin1kb.vcf.gz  
 
 ###END.
 
-#After filtering, kept 20 out of 20 Individuals
-#After filtering, kept 172462 out of a possible 1625794 Sites
+## OUTPUT
+# After filtering, kept 37 out of 37 Individuals
+# After filtering, kept 172462 out of a possible XYXY sites
