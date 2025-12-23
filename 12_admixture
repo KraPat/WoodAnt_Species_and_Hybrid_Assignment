@@ -92,38 +92,61 @@ scp krapfpat@puhti.csc.fi:/scratch/project_2009316/DutchSamples/X204SC23115958-Z
 C:\Users\...
 
 ## Now, in R, under "HWE.filtering.R", we need the ".fam" file as well as the "eigenvector" file (may be an Excel file) created for the PCA beforehand. 
-## For this, copy the Excel file "all_samples_DP8_PCA.xlsx" to the same folder and run the R code
-## ADD INFO HERE
-#WORKIN PROGRESS ####
+## For this, copy the Excel file "all_samples_DP8_PCA.xlsx" to the same folder and run the R code, which is shown below for consistency
 
+#### START R script ####
+library(dplyr)
+setwd("C:/Users/krapf/OneDrive/D_Uni/Formica_ants/Sequencing/5_Seq_results_18DutchSamples/admixture/")
+fam1 <- read.csv("./all_samples_DP8.AN10.noScaff0003.mac2_thin20kb.fam", sep="\t", header=F)
+#samples <- read.csv("PCA_eigenvector.xlsx", sep="\t")
+samples <- readxl::read_xlsx("all_samples_DP8_PCA.xlsx", sheet=2) ##
+#samples$vcfID...3
+samples_red <- subset(samples, select = c("IID", "Prelim_Species"))
+#colnames(samples_red) <- c("species", "IID")
+samples_red$Prelim_Species
 
-Then, upload the file:
-#Upload the plottign list file to PUHTI
-scp ./Genomicdata/Samples257_DP8.246inds.AN10.noScaff00-03.mac2.thin20kb.plink.plotting.list krapfpat@puhti.csc.fi:/scratch/project_2009316/project_2009316/DutchSamples/X204SC23115958-Z01-F008/filt/admixture/Samples257_DP8.246inds.AN10.noScaff00-03.mac2.thin20kb.plink.plotting.list
+fam1_1 <- as.data.frame(fam1[,1])
+#rio::export(fam1_1, "vcfID.txt")
+colnames(fam1_1) <- c("IID")
+fam1_2 <- left_join(fam1_1, samples_red, by="IID")
+fam1_3 <- fam1_2[,c(1,2)]
 
-Now, run R script interactively on Puhti:
+#Now, write the file, which we will upload to PUHTI
+write.table(fam1_3, "./all_samples_DP8.AN10.noScaff0003.mac2_thin20kb.cv.plotting.list", quote=FALSE, row.names=F, col.names=F)
+
+#### END R script ####
+
+## Next, we upload the plotting.list file "all_samples_DP8.AN10.noScaff0003.mac2_thin20kb.cv.plotting.list" tp PUHTI
+scp ./all_samples_DP8.AN10.noScaff0003.mac2_thin20kb.cv.plotting.list krapfpat@puhti.csc.fi:/scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/06.VCF/admixture/
+
+################### Again, on the cluster
+## In the next step, we run R script interactively on PUHTI to plot the data using a script created by Joana Meier
+## https://github.com/speciationgenomics/scripts/blob/master/plotADMIXTURE.r
+## Please also see the following site for more information: https://speciationgenomics.github.io/ADMIXTURE/
+## For this, we need to be in the folder where the "plotting.list" and the plink files are stored. We use sinteractive
+## FLAGS -p = prefix; -i = infofile; -k = maxK; -m = minK; -l = populations; -o = OutPrefix
+
+## START sinteractive
 sinteractive -A project_2009316 -c 1 -d 4 -m 1000 -t 00:30:00
 module load r-env
 
 #NOTE: ADMFILE is the prefix, before the P and Q of the files
-ADMFILE=Samples257_DP8.246inds.AN10.noScaff00-03.mac2.thin20kb.plink
-ADMLIST=Samples257_DP8.246inds.AN10.noScaff00-03.mac2.thin20kb.plink.plotting.list
+ADMFILE=all_samples_DP8.AN10.noScaff0003.mac2_thin20kb
+ADMLIST=all_samples_DP8.AN10.noScaff0003.mac2_thin20kb.cv.plotting.list
 
-Rscript "./plotADMIXTURE_K.R" -p $ADMFILE -i $ADMLIST -m 2 -k 9 -l prat,rufa,poly,aqui,lug,admixed1,admixed2,NA -o ${ADMFILE}
-#Note: -l is the species names in the plotting list file
+#Rscript "./plotADMIXTURE.R" \
+#-p $ADMFILE \
+#-i $ADMLIST -m 1 -k 10 \
+#-l prat,rufa,poly,aqui,lug,admixed1,NA \
+#-o ${ADMFILE}
 
-Download data
+#Oneliner for sinteractive
+Rscript "./plotADMIXTURE_pdf.R" -p $ADMFILE -i $ADMLIST -m 2 -k 10 -l prat,rufa,poly,aqui,lug,Hybrid,Hybrid2,NA -o ${ADMFILE}
+#Note: -l is the species names which must be the same as in the "plotting.list" file
+
+## END sinteractive
+
+### Now, we download the pdfs and have a look.
 scp krapfpat@puhti.csc.fi:/scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/filt/results/admixture/*pdf ./
 
-Rscript "./plotADMIXTURE_Ina.R" -p $ADMFILE -i $ADMLIST -m 2 -k 6 -l prat,rufa,poly,aqui,lug,admixed1,admixed2,NA -o ${ADMFILE}
-
-K 2-10
-Rscript "./plotADMIXTURE_Ina.R" -p $ADMFILE -i $ADMLIST -m 2 -k 10 -l prat,rufa,poly,aqui,lug,admixed1,admixed2,NA -o ${ADMFILE}
-
-or with 10kb
-ADMFILE=Samples257_DP8.246inds.AN10.noScaff00-03.mac2.thin10kb.plink
-ADMLIST=Samples257_DP8.246inds.AN10.noScaff00-03.mac2.thin10kb.plink.plotting.list
-
-#####
-RE-DO ADMIXTURE RUN WITH A REDUCED SAMPLE SIZE TO CREATE BALANCED APPROACH
-using 10 inds
+####### END.
