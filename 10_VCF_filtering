@@ -92,7 +92,7 @@ bcftools index -n all_samples.normalized.SnpGap_2.NonSNP.Balance.PASS.decomposed
 #SBATCH --mem=12G
 #SBATCH --mail-type=BEGIN,END,FAIL
 
-export PATH="/projappl/project_2009316/myenv/bin:$PAT"
+export PATH="/projappl/project_2009316/myenv/bin:$PATH
 module load biokit
 
 # create directory filt 
