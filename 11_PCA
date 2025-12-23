@@ -1,7 +1,12 @@
 ## Below, we use the VCF file generated in the previous steps to conduct a PCA with plink software.
 ## IF there are 50 samples or more in the VCF file, we can use plink (using sinteractive) to create a PCA. 
-## If not, we need to use "SNPRelated" in R on the cluster to create the PCA.
+## IF not, we need to use "SNPRelated" in R on the cluster to create the PCA.
 ## At the end, we download the data to our local machine using "scp" and work on the local machine.
+## Note, we will use the 20kb-windoe-thinned file for the PCA, which has 9,927 SNPs.
+
+## Before we start, we need to create a folder "pca" in /scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/06.VCF
+cd /scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/06.VCF
+mkdir pcf
 
 ############  CLUSTER script ###############################################################
 ## SCRIPT start sinteractive
@@ -25,6 +30,9 @@ plink --threads 1 \
       --pca header var-wts \
       --out $OUTPATH/all_samples_DP8_PCA
 
+## Below, all in a single line
+plink --threads 1 --vcf $VCF --double-id --allow-extra-chr --set-missing-var-ids @:# --pca header var-wts --out $OUTPATH/all_samples_DP8_PCA
+
 plink2 \
     --threads 1 \
     --vcf $VCF \
@@ -34,16 +42,48 @@ plink2 \
     --pca 20 approx \
     --out $OUTPATH/all_samples_DP8_PCA
 #too small sample size - need at least 50
+##Below, all in a single line
+plink2 --threads 1 --vcf $VCF --double-id --allow-extra-chr --set-missing-var-ids @:# --pca 20 approx --out $OUTPATH/all_samples_DP8_PCA
 
+##### IF WE WANT TO USE PLINK2, WE CAN ALSO CALCULATE ALLELE FREUQUENCIES DIRECTLY
+## We can also calculate allele frequencies using plink2, below as code and one liner
+plink2 \
+  --vcf $VCF \
+  --double-id \
+  --allow-extra-chr \
+  --set-missing-var-ids @:# \
+  --freq \
+  --out $OUTPATH/all_samples_DP8_freq
+
+#Oneliner
+plink2 --vcf $VCF --double-id --allow-extra-chr --set-missing-var-ids @:# --freq --out $OUTPATH/all_samples_DP8_freq
+
+## This produces the file "all_samples_DP8_freq.afreq". Now, we can run the code below to calculate the PCA
+plink2 \
+  --threads 1 \
+  --vcf $VCF \
+  --double-id \
+  --allow-extra-chr \
+  --set-missing-var-ids @:# \
+  --read-freq $OUTPATH/all_samples_DP8_freq.afreq \
+  --pca 20 approx \
+  --out $OUTPATH/all_samples_DP8_PCA
+
+## Oneliner below
+plink2 --threads 1 --vcf $VCF --double-id --allow-extra-chr --set-missing-var-ids @:# --read-freq $OUTPATH/all_samples_DP8_freq.afreq --pca 20 approx --out $OUTPATH/all_samples_DP8_PCA
+#There is then a note that "Warning: "--pca approx" is only recommended for analysis of >5000 samples". We have only 37 samples, but let's give it a try.
+
+exit # to exit sinteractive
 ############# END of CLUSTER sinteractive script ############################################################
 
 ## OR ##
 
-##########  R script ###############################################################
+##########  R script "run_pca_snprelate.R" ###############################################################
 ## If there are less than 50 samples in the VCF file, we need to run it in R using the package "SNPRelate".
 ## Below is the script, which we run on the cluster using Rscript /scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/run_pca_snprelate.R
 ## The name of the script is "run_pca_snprelate.R"
 
+##--## START OF R SCRIPT ##--##
 library(SNPRelate)
 
 # Define input and output paths
@@ -80,10 +120,10 @@ write.csv(round(pc.percent, 2), paste0(out.prefix, "_variance.csv"), row.names =
 cat("=== PCA completed successfully ===\n")
 snpgdsClose(genofile)
 
-############# END of R script ############################################################
+##--## END OF R SCRIPT ##--##
 
 
-## Now, we use this R script pn the cluster using sinteractive
+## Now, we use this R script "run_pca_snprelate.R" on the cluster using sinteractive
 
 sinteractive --account project_2009316 --mem 3000
 module load biokit
@@ -114,17 +154,150 @@ module load r-env
 # Run the R script
 Rscript /scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/run_pca_snprelate.R
 
+exit # to exit sinteractive
 
 ########## END OF R-BASH SCRIPT #####################
 
 
-## Now, we download the data to our local machine and plot it in R locally
+## Now, we download all the data to our local machine and plot it in R locally
 ## Download
-scp krapfpat@puhti.csc.fi:/scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/06.VCF/pca .
+scp krapfpat@puhti.csc.fi:/scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/06.VCF/pca/* .
 
 ## Now, open in R and plot it there. The code below is for consistency presented here but run locally.
-#### Plotting in R ####
+#Specifically, we will use the "eigenvec" file and the "species name" in that file as well as the PC1, PC2, PC3, PC4 (principal componen).
 
+#### Plotting PLINK2 files in R ####
+###---###---###---###---###---###---###---###---###---###
+# PCA ####
+###---###---###---###---###---###---###---###---###---###
+library("ggplot2")
+setwd("C:/.../5_Seq_results_18DutchSamples/PCA/")
+
+## With preliminary results ####
+### 37 inds ####
+PCA_vec <- read.csv("./all_samples_DP8_PCA.eigenvec", sep="\t", header=T)
+load <- PCA_vec[,3:4]  ##this loads the PC1 and PC2, change here for PC3 and PC4
+pc_scores_df <- data.frame(PC1 = PCA_vec[, 3], PC2 = PCA_vec[, 4], Species = PCA_vec$X.FID) 
+# above, we combine the data in data-frame "pc_scores_df" and plot below
+
+#Plot data
+ggplot(pc_scores_df, aes(x = PC1, y = PC2, color = Species)) + #, 
+  geom_point(size=3) +
+  labs(title = "PCA of Formica samples") +
+  #stat_ellipse(level = 0.95, size=1) +  #
+  theme(plot.title = element_text(size=20),
+        legend.position="none",
+        axis.title.x = element_text(size=13),
+        axis.text.x  = element_text(size=11, color="black"),
+        axis.title.y = element_text(size=13),
+        axis.text.y  = element_text(size=11, color="black"),
+        panel.grid.minor.x = element_blank())
+## Note: If you see one or two VERY distant samples driving the whole PCA, you probably have sequenced other Formica species, e.g. F. exsecta, F. sanguinea, F. truncorum. If you see one slightly distant cloud only, this is likely F. pratensis. 
+# You see different colors that represent the different IDs but are not yet the species names. We have to define them in a text or Excel file and load them to make this more easy to read.
+
+#Now, check species ID and add them to Excel-file, which is then loaded into R
+PCA_vec <- readxl::read_xlsx("./all_samples_DP8_PCA.xlsx", sheet="species")
+table(PCA_vec$ID_short)
+head(PCA_vec)
+
+#Plot PCA again with PC1 and PC2
+pdf("DutchSamples_PC12_20251223.pdf")
+png("DutchSamples_PC12_20251223.png", res=300, width = 3000, height = 3000)
+ggplot(PCA_vec, aes(x = PC1, y = PC2, col=Species, label=ID_short)) + #, 
+  geom_point(size=3) +
+  #labs(title = "PCA of Formica samples") +
+  scale_color_manual(name="Species",
+                     labels=c(expression(italic("F. aquilonia")),
+                              expression(italic("F. lugubris")),
+                              expression(italic("F. polyctena")),
+                              expression(italic("F. pratensis")),
+                              expression(italic("F. rufa")),
+                              "Hybrid", "Hybrid2", "NA"),  
+                     values=c("darkgreen", "lightgreen",
+                              "#d3c055",  "blue",
+                              "darkorange", 
+                              "#a072d5", "#d6461f", "black"))+ ##d6461f "#e7b727",
+  #stat_ellipse(level = 0.95, size=1) +  #
+  xlab(paste0("PC1 (", signif(percentages[1], 3), "%)")) + ylab(paste0("PC2 (", signif(percentages[3], 3), "%)")) +
+  geom_text(vjust = -0.7, size = 3) +
+  theme_bw() +#
+  theme(plot.title = element_text(size=20),
+        #legend.position="none",
+        axis.title.x = element_text(size=13),
+        axis.text.x  = element_text(size=11, color="black"),
+        axis.title.y = element_text(size=13),
+        axis.text.y  = element_text(size=11, color="black"),
+        panel.grid.minor.x = element_blank())
+dev.off()
+
+
+#Now, PC1-3
+pdf("DutchSamples_PC13_20251223.pdf")
+png("DutchSamples_PC13_20251223.png", res=300, width = 3000, height = 3000)
+ggplot(PCA_vec, aes(x = PC1, y = PC3, col=Species, label=ID_short)) + #, 
+  geom_point(size=3) +
+  #labs(title = "PCA of Formica samples") +
+  scale_color_manual(name="Species",
+                     labels=c(expression(italic("F. aquilonia")),
+                              expression(italic("F. lugubris")),
+                              expression(italic("F. polyctena")),
+                              expression(italic("F. pratensis")),
+                              expression(italic("F. rufa")),
+                              "Hybrid", "Hybrid2", "NA"),  
+                     values=c("darkgreen", "lightgreen",
+                              "#d3c055",  "blue",
+                              "darkorange", 
+                              "#a072d5", "#d6461f", "black"))+ ##d6461f "#e7b727",
+  #stat_ellipse(level = 0.95, size=1) +  #
+  xlab(paste0("PC1 (", signif(percentages[1], 3), "%)")) + ylab(paste0("PC3 (", signif(percentages[3], 3), "%)")) +
+  geom_text(vjust = -0.7, size = 3) +
+  theme_bw() +#
+  theme(plot.title = element_text(size=20),
+        #legend.position="none",
+        axis.title.x = element_text(size=13),
+        axis.text.x  = element_text(size=11, color="black"),
+        axis.title.y = element_text(size=13),
+        axis.text.y  = element_text(size=11, color="black"),
+        panel.grid.minor.x = element_blank())
+dev.off()
+
+
+## Note: I have now added preliminary species information based on the PCA to the Excel file and plot it below
+table(PCA_vec$Prelim_Species)
+#Plot PCA again with PC1 and PC2
+pdf("DutchSamples_PC12_prelimSP_20251223.pdf")
+ggplot(PCA_vec, aes(x = PC1, y = PC2, col=Prelim_Species, label=ID_short)) + #, 
+  geom_point(size=3) +
+  #labs(title = "PCA of Formica samples") +
+  scale_color_manual(name="Species",
+                     labels=c(expression(italic("F. aquilonia")),
+                              expression(italic("F. lugubris")),
+                              expression(italic("F. polyctena")),
+                              expression(italic("F. pratensis")),
+                              expression(italic("F. rufa")),
+                              "Hybrid", "Hybrid?", "Hybrid2", "NA"),  
+                     values=c("darkgreen", "lightgreen",
+                              "#d3c055",  "blue",
+                              "darkorange", 
+                              "#a072d5", "#dd98ce",
+                              "#d6461f", "black"))+ ##d6461f "#e7b727",
+  #stat_ellipse(level = 0.95, size=1) +  #
+  xlab(paste0("PC1 (", signif(percentages[1], 3), "%)")) + ylab(paste0("PC2 (", signif(percentages[3], 3), "%)")) +
+  geom_text(vjust = -0.7, size = 3) +
+  theme_bw() +#
+  theme(plot.title = element_text(size=20),
+        #legend.position="none",
+        axis.title.x = element_text(size=13),
+        axis.text.x  = element_text(size=11, color="black"),
+        axis.title.y = element_text(size=13),
+        axis.text.y  = element_text(size=11, color="black"),
+        panel.grid.minor.x = element_blank())
+dev.off()
+
+## END PLINK R script to plot PCA
+
+
+#### Plotting SNPRelate files in R ####
 #-----------------------------------
 # PCA_Visualization.R
 #-----------------------------------
@@ -169,6 +342,8 @@ ggplot(pca.df, aes(x = PC1, y = PC3, label = sample)) +
   ylab(paste0("PC3 (", round(pc_var[3], 2), "%)")) +
   theme_minimal() +
   ggtitle("PCA: PC1 vs PC3")
+
+
 
 #### THE PCA SHOULD BE RUN AGAIN AFTER EXCLUDING SOME SAMPLES!!
 # therefor the bellow part is not correct
