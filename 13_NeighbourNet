@@ -183,3 +183,47 @@ scp krapfpat@puhti.csc.fi:/scratch/project_2009316/Adriana/X204SC23115958-Z01-F0
 
 # In splitstree:
 # node shape: circle, size 5
+
+
+
+#######################
+#Quick mitochondrial analysis
+#First, we need to extract the SNPs from the VCF file for the mitochondria.
+#For this, we will use the availabel VCF file and bcftools and sinteractive
+
+
+sinteractive --account project_2009316 --mem 2000
+bcftools view -r mtDNA all_samples_DP8.AN10.noScaff0003.vcf.gz -Oz -o mito.vcf.gz
+# Now, we index the VCF wit the mitochondrial SNPs
+tabix -p vcf mito.vcf.gz
+
+#Now, we check that only mtDNA data i s present
+bcftools query -f '%CHROM\n' mito.vcf | uniq
+
+# In the next step, we count variants per sample and store this in a mito_stats.txt file. It will show use the number of SNPs per sample and shared vs private vairants
+bcftools stats mito.vcf.gz > mito_stats.txt
+
+#Now, we extract the SNP sequences for each file and then store them into one "mito_all.fasta"-file 
+for s in $(bcftools query -l mito.vcf.gz); do
+  bcftools consensus -s $s mito.vcf.gz > ${s}_mt.fasta
+done
+cat *_mt.fasta > mito_all.fasta
+
+
+distmat -sequence all_mt.fasta -nucmethod 2 -outfile mt_distances.txt
+
+## Haplotype analysis ##
+vcftools --vcf mito.vcf.gz --haplotype
+vcf2fasta -f /scratch/project_2009316/refGenome/Formica_hybrid_v1_wFhyb_Sapis.fa mito.vcf > mito_haplotypes.fasta
+
+
+
+
+
+
+
+
+
+
+
+
