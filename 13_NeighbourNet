@@ -193,12 +193,16 @@ scp krapfpat@puhti.csc.fi:/scratch/project_2009316/Adriana/X204SC23115958-Z01-F0
 
 
 sinteractive --account project_2009316 --mem 2000
-bcftools view -r mtDNA all_samples_DP8.AN10.noScaff0003.vcf.gz -Oz -o mito.vcf.gz
-# Now, we index the VCF wit the mitochondrial SNPs
+cd /scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/06.VCF/filt
+module load biokit
+
+bcftools view -r mtDNA all_samples_DP8.AN10.noScaff0003.vcf.gz -Oz -o /scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/06.VCF/mito/mito.vcf.gz
+# Now, we change directory, check the file, and index the VCF wit the mitochondrial SNPs
+cd /scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/06.VCF/mito
+#Now, we check that only mtDNA data is present
+bcftools query -f '%CHROM\n' mito.vcf.gz | uniq
 tabix -p vcf mito.vcf.gz
 
-#Now, we check that only mtDNA data i s present
-bcftools query -f '%CHROM\n' mito.vcf | uniq
 
 # In the next step, we count variants per sample and store this in a mito_stats.txt file. It will show use the number of SNPs per sample and shared vs private vairants
 bcftools stats mito.vcf.gz > mito_stats.txt
@@ -209,13 +213,23 @@ for s in $(bcftools query -l mito.vcf.gz); do
 done
 cat *_mt.fasta > mito_all.fasta
 
+#Then, in R, we can plot this as a haplotype network
+library(pegas)
+dna <- read.dna("mito_all.fasta", format="fasta")
+haploNet(haplotype(dna))
 
-distmat -sequence all_mt.fasta -nucmethod 2 -outfile mt_distances.txt
+## We can also compute pairwise distances:
+distmat -sequence mito_all.fasta -nucmethod 2 -outfile mt_distances.txt
+##This tells us how different mitochondrial genomes are between samples.
 
 ## Haplotype analysis ##
+#This code below, lists the haplotypes as allele strings at variant sites only, e.g., Haplotype1: 0 1 0 0; Haplotype2: 1 1 0 0
+#It only ouses variant site only and can be use to check how many different/unique haplotypes exist
 vcftools --vcf mito.vcf.gz --haplotype
-vcf2fasta -f /scratch/project_2009316/refGenome/Formica_hybrid_v1_wFhyb_Sapis.fa mito.vcf > mito_haplotypes.fasta
 
+#The code below, builds full-length mitochondrial sequences per sample including invaraint sites.
+#It can be used for haplotype networks (PopArt, pegas)
+vcf2fasta -f /scratch/project_2009316/refGenome/Formica_hybrid_v1_wFhyb_Sapis.fa mito.vcf > mito_haplotypes.fasta
 
 
 
