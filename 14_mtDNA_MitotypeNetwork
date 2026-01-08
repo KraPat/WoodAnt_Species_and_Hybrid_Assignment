@@ -133,34 +133,29 @@ scp krapfpat@puhti.csc.fi:/scratch/project_2009316/DutchSamples/X204SC23115958-Z
 
 
 ##WORK IN PROGRESS BELOW
-#So, we need to change the format manually using the perl script "Fasta2Phylip.pl" from https://indra.mullins.microbiol.washington.edu/perlscript/docs/Sequence.html and using Notepad++.
-First, I downloaded the script (do not forget to "chmod +x script), then I run the script locally under 
+#So, we need to change the format manually using the perl script "Fasta2Phylip.pl" from https://indra.mullins.microbiol.washington.edu/perlscript/docs/Sequence.html
+#After downloading the script (do not forget to "chmod +x script), we run the script locally under 
 #Linux - Root - Genomic data - Fasta2Phylip
-Fasta2Phylip.pl all257_samples_aligned.fa all257_samples_aligned.phylip
-#The file all257_samples_aligned.phylip was in a phylip format (https://scikit.bio/docs/latest/generated/skbio.io.format.phylip.html) and can be used, but the suffix needs to be changed from phylip to nex (also check out the tutorial: https://dcsoto.github.io/2024/09/30/haplotype-network)
+#The code is below:
+Fasta2Phylip.pl all38_mtDNAsamples_aligned.fa all38_mtDNAsamples_aligned.phylip
+
+#The file "all38_mtDNAsamples_aligned.phylip" is now in a phylip format
+#https://scikit.bio/docs/latest/generated/skbio.io.format.phylip.html
+#and can be used as it is, but the suffix needs to be changed from "phylip" to "nex" (For more details, check the tutorial: https://dcsoto.github.io/2024/09/30/haplotype-network
 all257_samples_aligned.nex
-You can also use PGDspider to transform it! Then, you can use it in PopArt.
-In PopArt, you can choose an "Epsilon"-value. "Epsilon defines a threshold for allowing connections that aren't the shortest (most parsimonious) path between nodes (haplotypes). By setting a higher epsilon, you permit more connections, allowing the network to capture more complexity, especially when evolutionary relationships are unclear or reticulate (branching and reconnecting).-CHATGPT info". Use the median-joining network
+#This can be done locally. You can also use PGDspider to transform it! Then, you can use it in PopArt.
 
+#### PopArt ####
+# In PopArt, you load the "nex" file. Then you create a "Median Joining spanning network" and after that 
+you can choose an "Epsilon"-value. "Epsilon defines a threshold for allowing connections that aren't the shortest (most parsimonious) path between nodes (haplotypes). By setting a higher epsilon, you permit more connections, allowing the network to capture more complexity, especially when evolutionary relationships are unclear or reticulate (branching and reconnecting).-CHATGPT info". Use the median-joining network
 
+##WORK in progress below
+So, I created the data to created haplotype network in PopArt.
+First, I copied the 466 phylip file "all257_samples_aligned_246_20241110.phylip" which was already aligned and excluded samples NOT found in Finland (ie to 179 samples) and called it "all257_to_179samples_aligned_20241218.phylip".
+Then I created a "Trait" file called "all257_to_179samples_Traits_20241218.txt". In this, each sample name has a species name and a number if it belongs to one of the species or admixed sample, e.g. 0,1,0,0,0,0,0,0 means it belongs to F aqui
+You thhn load both files into PopArt. First the phylip-alignment, then the trait file. Do NOT delete the alignment when loading the file.
+Then run the minnimum and then the median spanning network
 
-
-
-
-
-
-
-
-Median-joining network
-all257_samples_aligned_20241110.svg
-under 
-C:\Users\krapf\OneDrive\D_Uni\Formica_ants\Sequencing\5_Seq_results\2_Analyses\7_mitotype_network\SNPCalling_466SNPs
-
-wtih 179 samples
-
-
-Now, I excluded the following sequences from the file
-105-FaquH --remove-indv 54-Frufa --remove-indv A_275b_EKDN240013567_trim_pair --remove-indv RN418 --remove-indv s353 --remove-indv s354 --remove-indv RN421 --remove-indv RN425 --remove-indv RN426 --remove-indv RN422
 
 
 
