@@ -2,8 +2,8 @@
 # For this, we nwill use again freebayes and need a "regions_mtDNA.txt" file with only the mtDNA region in it for the SNP calling
 # We will use sinteractive to create this regions_mtDNA file
 
+### START sinteractive
 sinteractive --account project_2009316 --mem 2000
-cd /scratch/project_2009316/refGenome/
 
 #modify regions file so that Freebayes accepts it
 cd /scratch/project_2009316/refGenome
@@ -11,13 +11,13 @@ awk 'BEGIN{OFS=""} {print $1,":",$2,"-",$3}' Formica_hybrid_v1_wFhyb_Sapis_5e6_d
 
 #remove regions that require different SNP calling parameters if they are needed: Wolbachia (wFhyb*), and Spiroplasma (Spiroplasma*), as well as Scaffold00, but KEEP mtDNA
 #that has unmapped reads (for cutting off SNP calling time since it will not be used anyway in the analyses I can think of)
-grep -v -e wFhyb -e Spiroplasma -e Scaffold00 Formica_hybrid_v1_5e6_data_regionswmtDNA.tmp > Formica_hybrid_v1_5e6_data_regions_wmtDNA.txt ; rm Formica_hybrid_v1_5e6_data_regionswmtDNA.tmp
-#exit sinteractive
-
-#cd /scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/06.VCF
-
+grep -v -e wFhyb -e Spiroplasma -e Scaffold00 Formica_hybrid_v1_5e6_data_regions.tmp > Formica_hybrid_v1_5e6_data_regions_wmtDNA.txt ; rm Formica_hybrid_v1_5e6_data_regions.tmp
 grep -e mtDNA Formica_hybrid_v1_5e6_data_regions_wmtDNA.txt > regions_mtDNA.txt
+exit sinteractive
 
+### END sinteracive
+
+##### Call SNPs #####
 # Now, we create a new folder called "07.VCF_mtDNA"
 cd /scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/
 mkdir 07.VCF_mtDNA
@@ -31,8 +31,95 @@ REF=/scratch/project_2009316/refGenome
 RES=/scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/07.VCF_mtDNA
 BAM=/scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/05.BAM/bam_final
 
-freebayes-puhti -time 72 -mem 64 -regions $REF/regions_mtDNA.txt -f $REF/Formica_hybrid_v1_wFhyb_Sapis.fa -L $BAM/all.bam.list -k --genotype-qualities --skip-coverage 15200 --limit-coverage 100 --use-best-n-alleles 3 --pooled-continuous -out $RES/raw/all_samples_mtDNA_raw.vcf
-bcftools stats $RES/raw/all_samples_mtDNA_raw.vcf
+freebayes-puhti -time 72 -mem 64 -regions $REF/regions_mtDNA.txt -f $REF/Formica_hybrid_v1_wFhyb_Sapis.fa -L $BAM/all.bam.list -k --genotype-qualities --skip-coverage 15200 --limit-coverage 100 --use-best-n-alleles 3 --pooled-continuous -out $RES/all_samples_mtDNA_raw.vcf
+bcftools stats $RES/all_samples_mtDNA_raw.vcf
+#161 SNPs with 38 samples
+#Since there are only 161 SNPs, we do not any additional filtering, but only sorting and compressing the VCF file in the next steps below
+
+####### SORTING, COMPRESSING, AND INDEXING #####
+#Now, we sort and compress the VCF file using sineractive
+sinteractive --account project_2009316 --mem 2000
+module load biokit
+cd /scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/07.VCF_mtDNA
+
+# In the next step we "Sort" and "compress" the VCF file in one step.
+bcftools sort -m 1G -Oz -o all_samples_mtDNA_raw.vcf.gz -T ./tmp_sort all_samples_mtDNA_raw.vcf
+
+# Index
+tabix -p vcf all_samples_mtDNA_raw.vcf.gz
+bcftools index -n all_samples_mtDNA_raw.vcf.gz
+
+#Extract the number of sites per mtDNA 
+gunzip -c all_samples_mtDNA_raw.vcf.gz | grep -v "^#" | cut -f 1 | uniq -c > site_count_per_mtDNA.tab
+#185
+
+
+
+
+
+
+
+
+## Next, we create a consensus sequence by by applying VCF variants to a reference fasta file using vcftools vcf-consensus scripts from
+## https://github.com/vcftools/vcftools/blob/master/src/perl/vcf-consensus#L111
+#Note, this is a pearl script. You have to copy-paste it to a file "vcf-consensus_code.pl" and make it executable with
+chmod +x cf-consensus_code.pl
+
+#Now, we create a sample list using 
+bcftools query -l Samples257_DP8.257inds.AN10.mtDNA.mac2.vcf.gz > samples.list
+#Also you need to index the vcf file using
+tabix -p Samples257_DP8.257inds.AN10.mtDNA.mac2.vcf.gz
+#Then you can use it. I now created a forward loop in a script, called 9.6_VCFconsensus.sh
+which iterates through the samples.list file and creates the consensu file. For this, you forst run sinteracntive
+sinteractive -A project_2009316 -c 1 -d 4 -m 1000 -t 00:30:00 
+sinteracntive and then run the script. The script is below for simplicity. It first 
+
+#Note, all files  need to be in the same folder
+9.6_VCFconsensus.sh
+# Set wd
+cd /scratch/project_2009316/vcf/raw/Samples257_skipCov50k_mtDNA_2
+
+# Load packages
+module load biokit
+
+bcftools query -l Samples257_DP8.257inds.AN10.mtDNA.mac2.vcf.gz > samples.list
+while IFS= read -r samples; do
+        echo $samples
+        samtools faidx /scratch/project_2009316/refGenome/Formica_hybrid_v1_wFhyb_Sapis.fa mtDNA | ./vcf-consensus.pl -H 1 -s $samples Samples257_DP8.257inds.AN10.mtDNA.mac2.vcf.gz > $samples"_mtDNA".fa
+done < samples.list
+#NOTE. -H keeps the first haplotype, -s are the samples
+
+Then, you have all fa.files. I moved these files into the folder "mtDNA_fa".
+mkdir mtDNA_fa
+mv *fa mtDNA_fa/
+
+Inside the folder, I first added all fa-files into a sample list
+ls *fa > list.samples
+Then, I created a new script, 9.7_mafft.sh, which first, re-names the first line in each fasta file with the sample ID (e.g. from >mtDNA to >1-Fprat), second, cats all fasta-files into one file (all257_samples.fa), third, aligs the files using mafft with the output: all257_samples_aligned.fa
+Note: https://mafft.cbrc.jp/alignment/software/anysymbol.html
+Note: https://www.ebi.ac.uk/jdispatcher/msa/mafft?stype=dna
+Note: I used --anysymbol to make sure that unusual characters such as U, #, . are scored as unknown
+
+Then, I downloaded the file locally to plot it in PopArt. PopArt needs a phylip format, while the data format is mafft. So, I needed to change the format manually using the perl script "Fasta2Phylip.pl" from https://indra.mullins.microbiol.washington.edu/perlscript/docs/Sequence.html
+and Notepad++.
+First, I downloaded the script (do not forget to "chmod +x script), then I run the script locally under 
+Linux - Root - Genomic data - Fasta2Phylip
+Fasta2Phylip.pl all257_samples_aligned.fa all257_samples_aligned.phylip
+The file all257_samples_aligned.phylip was in a phylip format (https://scikit.bio/docs/latest/generated/skbio.io.format.phylip.html) and can be used, but the suffix needs to be changed from phylip to nex (also check out the tutorial: https://dcsoto.github.io/2024/09/30/haplotype-network)
+all257_samples_aligned.nex
+You can also use PGDspider to transform it! Then, you can use it in PopArt.
+In PopArt, you can choose an "Epsilon"-value. "Epsilon defines a threshold for allowing connections that aren't the shortest (most parsimonious) path between nodes (haplotypes). By setting a higher epsilon, you permit more connections, allowing the network to capture more complexity, especially when evolutionary relationships are unclear or reticulate (branching and reconnecting).-CHATGPT info". Use the median-joining network
+
+Median-joining network
+all257_samples_aligned_20241110.svg
+under 
+C:\Users\krapf\OneDrive\D_Uni\Formica_ants\Sequencing\5_Seq_results\2_Analyses\7_mitotype_network\SNPCalling_466SNPs
+
+wtih 179 samples
+
+
+Now, I excluded the following sequences from the file
+105-FaquH --remove-indv 54-Frufa --remove-indv A_275b_EKDN240013567_trim_pair --remove-indv RN418 --remove-indv s353 --remove-indv s354 --remove-indv RN421 --remove-indv RN425 --remove-indv RN426 --remove-indv RN422
 
 
 
