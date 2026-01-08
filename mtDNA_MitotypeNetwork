@@ -1,0 +1,30 @@
+# Below, we will first call SNPs from the mitochonrial part of the WGS only
+# For this, we nwill use again freebayes and need a "regions_mtDNA.txt" file with only the mtDNA region in it for the SNP calling
+# The "regions.txt" file from which we will extract the mtDNA sites, is already available
+# In the folder with the reference genomes, run the code
+
+cd /scratch/project_2009316/refGenome
+grep -e mtDNA regions.txt > regions_mtDNA.txt
+
+# Now, we create a new folder called "07.VCF_mtDNA"
+cd /scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/
+mkdir 07.VCF_mtDNA
+
+#Next, we will do the SNP calling. Again, we will use "screen" to create an external screen
+screen -S snpcall_mtDNA
+module load freebayes # version used in 2023: v1.3.6
+
+cd /scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/06.VCF
+REF=/scratch/project_2009316/refGenome
+RES=/scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/07.VCF_mtDNA
+BAM=/scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/05.BAM/bam_final
+
+freebayes-puhti -time 72 -mem 64 -regions $REF/regions_mtDNA.txt -f $REF/Formica_hybrid_v1_wFhyb_Sapis.fa -L $BAM/all.bam.list -k --genotype-qualities --skip-coverage 15200 --limit-coverage 100 --use-best-n-alleles 3 --pooled-continuous -out $RES/raw/all_samples_mtDNA_raw.vcf
+bcftools stats $RES/raw/all_samples_mtDNA_raw.vcf
+
+
+
+
+
+
+
