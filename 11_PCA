@@ -18,7 +18,7 @@ module load plink
 cd /scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/06.VCF/pca
 OUTPATH=/scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/06.VCF/pca
 
-# Path to the filtered VCF (social chromosome excluded, 20 kb thinning)
+# Path to the filtered VCF (social chromosome 03 excluded, 20 kb thinning)
 VCF=/scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/06.VCF/filt/all_samples_DP8.AN10.noScaff0003.mac2.thin20kb.vcf.gz
 
 # Run PCA with PLINK 
@@ -159,6 +159,12 @@ exit # to exit sinteractive
 ########## END OF R-BASH SCRIPT #####################
 
 
+
+#################################################################################################################
+## LOCAL MACHINE - R - PCA
+#################################################################################################################
+
+############ PLINK R PCA ####################
 ## Now, we download all the data to our local machine and plot it in R locally
 ## Download
 scp krapfpat@puhti.csc.fi:/scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/06.VCF/pca/* .
@@ -297,6 +303,7 @@ dev.off()
 ## END PLINK R script to plot PCA
 
 
+############ SNPRelate R PCA ####################
 #### Plotting SNPRelate files in R ####
 #-----------------------------------
 # PCA_Visualization.R
@@ -345,25 +352,199 @@ ggplot(pca.df, aes(x = PC1, y = PC3, label = sample)) +
 
 
 
-#### THE PCA SHOULD BE RUN AGAIN AFTER EXCLUDING SOME SAMPLES!!
-# therefor the bellow part is not correct
+#### THE PCA SHOULD BE RUN AGAIN AFTER EXCLUDING ADDITIONAL SAMPLES!!
+## Below, I added a script part to exclude F. pratensis samples and create a new PCA. Note, this part of the scrips is from the "10_VCF_filtering" script.
 
-pca.df.filtered <- subset(pca.df, !grepl("Fprat", sample))
 
-# PC1 vs PC2
-ggplot(pca.df.filtered, aes(x = PC1, y = PC2, label = sample)) +
-  geom_point(size = 3, color = "steelblue") +
-  geom_text(vjust = 2, size = 3) +
-  xlab(paste0("PC1 (", round(pc_var[1], 2), "%)")) +
-  ylab(paste0("PC2 (", round(pc_var[2], 2), "%)")) +
-  theme_minimal() +
-  ggtitle("PCA: PC1 vs PC2")
+###############################################################################    STEP X) RE-filtering based on allelic number (AN)    ####################################################
+## After creating the PCA, we need want to exclude F. pratensis to have a deeper insisght into the other samples. For this, we need to re-filter the VCF.
 
-# PC1 vs PC3
-ggplot(pca.df.filtered, aes(x = PC1, y = PC3, label = sample)) +
-  geom_point(size = 3, color = "darkorange") +
-  geom_text(vjust = 2, size = 3) +
-  xlab(paste0("PC1 (", round(pc_var[1], 2), "%)")) +
-  ylab(paste0("PC3 (", round(pc_var[3], 2), "%)")) +
-  theme_minimal() +
-  ggtitle("PCA: PC1 vs PC3")
+
+######################################################## Beginning script 4, called "10e1_RE_prat_filter.sh"
+ 
+## We identified four new F.pratensis individuals as well as the reference F. pratensis sampels: 117-Fprat, 120-Fprat, Th2_MKDN250052013-1A_235LJ3LT4_L5, W1_MKDN250052010-1A_235LJ3LT4_L5, W2_MKDN250052011-1A_235LJ3LT4_L5, and th1_MKDN250052012-1A_235LJ3LT4_L5comb
+
+#First, add the sample names that should be removed to a file "remove_samples.txt", one in each line
+vim remove_samples.txt
+# The, run the scrupt below.
+
+######
+
+#!/bin/bash -l
+#SBATCH -J filt_AN_31
+#SBATCH --account=project_2009316
+#SBATCH -o /scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/06.VCF/logs/filt_AN_31inds.out  #CHANGE number of samples
+#SBATCH -e /scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/06.VCF/logs/filt_AN_31inds.err  #CHANGE number of samples
+#SBATCH -t 04:00:00
+#SBATCH -p small
+#SBATCH --ntasks 4
+#SBATCH --mem=8G
+#SBATCH --mail-type=BEGIN,END,FAIL
+
+module load biokit
+
+cd /scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/06.VCF/filt
+
+# FILTERING BASED ON ALLELIC NUMBER (AN)
+## NOTE, calculate and change based on the number of samples
+# 31 samples = 62 alleles expected
+# 10% missing data = 6.2 = 62 - 6.2 = 56 alleles min
+
+VCF1=all_samples.normalized.SnpGap_2.NonSNP.Balance.PASS.decomposed.SNPQ30.biall.fixedHeader.minDP8.hwe.37inds.vcf.gz
+VCF2=all_samples.normalized.SnpGap_2.NonSNP.Balance.PASS.decomposed.SNPQ30.biall.fixedHeader.minDP8.hwe.31inds.vcf.gz
+VCF3=all_samples.normalized.SnpGap_2.NonSNP.Balance.PASS.decomposed.SNPQ30.biall.fixedHeader.minDP8.hwe.31inds.AN10percMiss.vcf.gz
+
+#filter out individual Th2_MKDN250052013-1A_235LJ3LT4_L5 W1_MKDN250052010-1A_235LJ3LT4_L5 W2_MKDN250052011-1A_235LJ3LT4_L5 th1_MKDN250052012-1A_235LJ3LT4_L5comb
+vcftools --gzvcf $VCF1 --remove-indv 117-Fprat --remove-indv 120-Fprat --remove-indv Th2_MKDN250052013-1A_235LJ3LT4_L5 --remove-indv W1_MKDN250052010-1A_235LJ3LT4_L5 --remove-indv W2_MKDN250052011-1A_235LJ3LT4_L5 --remove-indv th1_MKDN250052012-1A_235LJ3LT4_L5comb --recode --recode-INFO-all --stdout | bgzip > $VCF2
+
+bcftools index -t $VCF2
+echo "number of inds when should be 31..."
+bcftools query -l $VCF2 | wc -l
+echo "number of variants when should be 3,662,669..."
+bcftools index -n $VCF2
+
+#Filter on allelic number (AN)
+bcftools view --threads 4 -Oz -i 'AN >= 56' $VCF2 > $VCF3
+
+bcftools index -t $VCF3
+echo "number of variants after AN filtering..."
+bcftools index -n $VCF3
+
+###END.
+
+
+## OUTPUT
+##number of inds when should be 31...
+31
+##number of variants when should be...3,026,703
+3,026,703
+##number of variants after AN filtering...
+2,155,374
+
+
+###############################################################################    STEP 5) Filter ##########################
+## In the next step, we will exclude Scaffold03, in which the social chromosome is present. We also indicate this in the filename.
+## Later, we may also want to exclude Scaffold00, which is a fake scaffold to which sequences are aligned that do not fit other scaffolds. 
+## We will use siteractive to exclude scaffold 03.
+## Then, we will run a script for thinning the vcf file.
+
+sinteractive --account project_2009316 --mem 8000
+cd /scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/06.VCF/filt
+module load biokit
+
+VCFIN=all_samples.normalized.SnpGap_2.NonSNP.Balance.PASS.decomposed.SNPQ30.biall.fixedHeader.minDP8.hwe.31inds.vcf.gz
+
+## The code below now excludes "Scaffold03" and then indexes the VCF file
+vcftools --gzvcf $VCFIN --not-chr Scaffold03 --recode --recode-INFO-all --stdout | bgzip > all_31samples_DP8.AN10.noScaff03.vcf.gz      
+bcftools index -t all_31samples_DP8.AN10.noScaff03.vcf.gz
+
+## The code below now excludes "Scaffold0003" and then indexes the VCF file
+VCFIN=all_31samples_DP8.AN10.noScaff03.vcf.gz   
+
+vcftools --gzvcf $VCFIN --not-chr Scaffold00 --recode --recode-INFO-all --stdout | bgzip > all_31samples_DP8.AN10.noScaff0003.vcf.gz
+bcftools index -t all_31samples_DP8.AN10.noScaff0003.vcf.gz
+
+## Note, you could also exclude both at the same time by using the code below
+##### vcftools --gzvcf $VCFIN --not-chr Scaffold00 --not-chr Scaffold03 --recode --recode-INFO-all --stdout | bgzip >  all_31samples_DP8.AN10.noScaff0003.vcf.gz
+exit #to exit sinteractive
+
+## To check if this worked, you can run the code below
+bcftools stats all_31samples_DP8.AN10.noScaff03.vcf.gz | grep "Scaffold03"
+bcftools stats all_31samples_DP8.AN10.noScaff0003.vcf.gz | grep "Scaffold00"
+# There should be no output (zero variants)! It is still present in the header though!
+
+
+## Note, this VCF file cannot be directly used for analyses but needs to undergo a few more thinning steps, see below.
+
+
+################################### Beginning script 5, called "10f1_prat_filter_mac_thin.sh"
+
+#!/bin/bash -l
+#SBATCH -J filter_mac_thin
+#SBATCH --account=project_2009316
+#SBATCH -o /scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/06.VCF/logs/filter_mac_thin_31samp.out
+#SBATCH -e /scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/06.VCF/logs/filter_mac_thin_31samp.err
+#SBATCH -t 04:00:00
+#SBATCH -p small
+#SBATCH --ntasks 4
+#SBATCH --mem=8G
+#SBATCH --mail-type=BEGIN,END,FAIL
+
+cd /scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/06.VCF/filt
+module load biokit
+
+# First, we select only 2-allelic SNPS
+vcftools --gzvcf all_31samples_DP8.AN10.noScaff0003.vcf.gz --mac 2 --recode --recode-INFO-all --stdout | bgzip > all_31samples_DP8.AN10.noScaff0003.mac2.vcf.gz       
+bcftools index -t all_31samples_DP8.AN10.noScaff0003.mac2.vcf.gz 
+echo "number of variants in all_31samples_DP8.AN10.noScaff0003.mac2.vcf.gz..."
+bcftools index -n all_31samples_DP8.AN10.noScaff0003.mac2.vcf.gz 
+
+## Second, we thin with 20kb windows
+vcftools --gzvcf all_31samples_DP8.AN10.noScaff0003.mac2.vcf.gz --thin 20000 --recode --recode-INFO-all --stdout | bgzip > all_31samples_DP8.AN10.noScaff0003.mac2.thin20kb.vcf.gz       
+bcftools index -t all_31samples_DP8.AN10.noScaff0003.mac2.thin20kb.vcf.gz
+echo "number of variants in all_31samples_DP8.AN10.noScaff0003.mac2.thin20kb.vcf.gz..."
+bcftools index -n all_31samples_DP8.AN10.noScaff0003.mac2.thin20kb.vcf.gz
+
+## Here, we thin for the NJtree using 1kb windows
+vcftools --gzvcf all_31samples_DP8.AN10.noScaff0003.mac2.vcf.gz --thin 1000 --recode --recode-INFO-all --stdout | bgzip > all_31samples_DP8.AN10.noScaff0003.mac2.thin1kb.vcf.gz       
+bcftools index -t all_31samples_DP8.AN10.noScaff0003.mac2.thin1kb.vcf.gz  
+echo "number of variants in all_31samples_DP8.AN10.noScaff0003.mac2.thin1kb.vcf.gz  ..."
+bcftools index -n all_31samples_DP8.AN10.noScaff0003.mac2.thin1kb.vcf.gz  
+
+###END.
+
+## OUTPUT
+#Number of variants in all_31samples_DP8.AN10.noScaff0003.mac2.vcf.gz...
+#1,570,932
+#number of variants in all_31samples_DP8.AN10.noScaff0003.mac2.thin20kb.vcf.gz...
+#9903
+#number of variants in all_31samples_DP8.AN10.noScaff0003.mac2.thin1kb.vcf.gz  ...
+#171129
+
+
+## Below, the script as presented above is shown for the redcued samples
+############  CLUSTER script ###############################################################
+## SCRIPT start sinteractive
+
+sinteractive --account project_2009316 --mem 3000
+module load biokit
+module load plink
+
+cd /scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/06.VCF/pca
+OUTPATH=/scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/06.VCF/pca
+
+# Path to the filtered VCF (social chromosome excluded, 20 kb thinning)
+VCF=/scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/06.VCF/filt/all_31samples_DP8.AN10.noScaff0003.mac2.thin20kb.vcf.gz
+
+#Oneliner to calculate allele frequencies
+plink2 --vcf $VCF --double-id --allow-extra-chr --set-missing-var-ids @:# --freq --out $OUTPATH/all_31samples_DP8_freq
+
+## Oneliner to create PCA
+plink2 --threads 1 --vcf $VCF --double-id --allow-extra-chr --set-missing-var-ids @:# --read-freq $OUTPATH/all_31samples_DP8_freq.afreq --pca 20 approx --out $OUTPATH/all_31samples_DP8_freq
+#There is then a note that "Warning: "--pca approx" is only recommended for analysis of >5000 samples". 
+
+exit # to exit sinteractive
+############# END of CLUSTER sinteractive script ############################################################
+
+
+#############################
+## Now, we download the new PCA data
+scp krapfpat@puhti.csc.fi:/scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/06.VCF/pca/all_31samples* .
+
+## Now, open in R and plot it there. The code below is for consistency presented here but run locally.
+#Specifically, we will use the "eigenvec" file and the "species name" in that file as well as the PC1, PC2, PC3, PC4 (principal componen).
+
+#### Plotting PLINK2 files in R ####
+###---###---###---###---###---###---###---###---###---###
+# PCA ####
+###---###---###---###---###---###---###---###---###---###
+library("ggplot2")
+setwd("C:/.../5_Seq_results_18DutchSamples/PCA/")
+
+## With preliminary results ####
+### 37 inds ####
+PCA_vec <- read.csv("./all_samples_DP8_PCA.eigenvec", sep="\t", header=T)
+load <- PCA_vec[,3:4]  ##this loads the PC1 and PC2, change here for PC3 and PC4
+pc_scores_df <- data.frame(PC1 = PCA_vec[, 3], PC2 = PCA_vec[, 4], Species = PCA_vec$X.FID) 
+# above, we combine the data in data-frame "pc_scores_df" and plot below
+
