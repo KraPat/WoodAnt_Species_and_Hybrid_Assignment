@@ -1,10 +1,22 @@
 # Below, we will first call SNPs from the mitochonrial part of the WGS only
 # For this, we nwill use again freebayes and need a "regions_mtDNA.txt" file with only the mtDNA region in it for the SNP calling
-# The "regions.txt" file from which we will extract the mtDNA sites, is already available
-# In the folder with the reference genomes, run the code
+# We will use sinteractive to create this regions_mtDNA file
 
+sinteractive --account project_2009316 --mem 2000
+cd /scratch/project_2009316/refGenome/
+
+#modify regions file so that Freebayes accepts it
 cd /scratch/project_2009316/refGenome
-grep -e mtDNA regions.txt > regions_mtDNA.txt
+awk 'BEGIN{OFS=""} {print $1,":",$2,"-",$3}' Formica_hybrid_v1_wFhyb_Sapis_5e6_data_regions.fa.fai > Formica_hybrid_v1_5e6_data_regions.tmp
+
+#remove regions that require different SNP calling parameters if they are needed: Wolbachia (wFhyb*), and Spiroplasma (Spiroplasma*), as well as Scaffold00, but KEEP mtDNA
+#that has unmapped reads (for cutting off SNP calling time since it will not be used anyway in the analyses I can think of)
+grep -v -e wFhyb -e Spiroplasma -e Scaffold00 Formica_hybrid_v1_5e6_data_regionswmtDNA.tmp > Formica_hybrid_v1_5e6_data_regions_wmtDNA.txt ; rm Formica_hybrid_v1_5e6_data_regionswmtDNA.tmp
+#exit sinteractive
+
+#cd /scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/06.VCF
+
+grep -e mtDNA Formica_hybrid_v1_5e6_data_regions_wmtDNA.txt > regions_mtDNA.txt
 
 # Now, we create a new folder called "07.VCF_mtDNA"
 cd /scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/
