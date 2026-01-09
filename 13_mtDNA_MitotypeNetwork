@@ -146,20 +146,25 @@ all257_samples_aligned.nex
 #This can be done locally. You can also use PGDspider to transform it! Then, you can use it in PopArt.
 
 #### PopArt ####
-# In PopArt, you load the "nex" file. Then you create a "Median Joining spanning network" and after that 
-you can choose an "Epsilon"-value. "Epsilon defines a threshold for allowing connections that aren't the shortest (most parsimonious) path between nodes (haplotypes). By setting a higher epsilon, you permit more connections, allowing the network to capture more complexity, especially when evolutionary relationships are unclear or reticulate (branching and reconnecting).-CHATGPT info". Use the median-joining network
+# In PopArt, you load the "nex" file via the "File-Open"Function. Then you create a "Median Joining spanning network". Here you are asked to give an "Epsilon"-value. "Epsilon defines a threshold for allowing connections that aren't the shortest (most parsimonious) path between nodes (haplotypes). By setting a higher epsilon, you permit more connections, allowing the network to capture more complexity, especially when evolutionary relationships are unclear or reticulate (branching and reconnecting). (-> from CHATGPT). 
 
-##WORK in progress below
-So, I created the data to created haplotype network in PopArt.
-First, I copied the 466 phylip file "all257_samples_aligned_246_20241110.phylip" which was already aligned and excluded samples NOT found in Finland (ie to 179 samples) and called it "all257_to_179samples_aligned_20241218.phylip".
-Then I created a "Trait" file called "all257_to_179samples_Traits_20241218.txt". In this, each sample name has a species name and a number if it belongs to one of the species or admixed sample, e.g. 0,1,0,0,0,0,0,0 means it belongs to F aqui
-You thhn load both files into PopArt. First the phylip-alignment, then the trait file. Do NOT delete the alignment when loading the file.
-Then run the minnimum and then the median spanning network
+# You can also add a "trait.txt" file, with which you can color-code the nodes based on species identity. In this file, each sample is in one line and starts with the species ID followed by a numeric code of 0 and 1 indicaitng to which species it belongs.
+#Note, the species IDs and the IDs in the phylip file need to be identical for this to work
+#For example 0,1,0,0,0,0,0,0 means it belongs to F aquilonia. For simplicity, I've added part of such a file below:
+AQU,LUG,RUF,POL,PRA,HYB1,HYB2,HYB3
+102-Frufa_mtDNA.fa,0,0,1,0,0,0,0,0
+108-Flug_mtDNA.fa,0,1,0,0,0,0,0,0
+115-Flug_mtDNA.fa,0,1,0,0,0,0,0,0
+117-Fprat_mtDNA.fa,0,0,0,0,1,0,0,0
+119-Flug_mtDNA.fa,0,0,0,0,0,0,1,0
+120-Fprat_mtDNA.fa,0,0,0,0,1,0,0,0
+126-Flug_mtDNA.fa,0,0,0,0,0,0,1,0
+52-Fpol_mtDNA.fa,0,0,0,0,0,1,0,0
+72-Frufa_mtDNA.fa,0,0,1,0,0,0,0,0
 
+#We can load both files into PopArt. First the phylip-alignment, then the trait file. Do NOT delete the alignment when loading the file.
+#First run the minimum and then the median spanning network
 
-
-
-
-
+##END
 
 
