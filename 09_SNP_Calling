@@ -119,11 +119,6 @@ python split_ref_by_bai_datasize.py \
 -r /scratch/project_2009316/refGenome/Formica_hybrid_v1_wFhyb_Sapis.fa.fai \
 -s 5000000 > /scratch/project_2009316/refGenome/Formica_hybrid_v1_wFhyb_Sapis_5e6_data_regions.fa.fai
 
-#INFO 2025-10-31 11:53:19,894 [split_ref_by_bai_datasize:152 Main] :: Number of chroms: 106
-#INFO 2025-10-31 11:53:19,894 [split_ref_by_bai_datasize:153 Main] :: Number of splits: 1022
-#INFO 2025-10-31 11:53:19,894 [split_ref_by_bai_datasize:154 Main] :: Number of regions: 1128
-#INFO 2025-10-31 11:53:19,894 [split_ref_by_bai_datasize:156 Main] :: Done: 1.53 sec elapsed
-
 #modify regions file so that Freebayes accepts it
 cd /scratch/project_2009316/refGenome
 awk 'BEGIN{OFS=""} {print $1,":",$2,"-",$3}' Formica_hybrid_v1_wFhyb_Sapis_5e6_data_regions.fa.fai > Formica_hybrid_v1_5e6_data_regions.tmp
@@ -145,6 +140,7 @@ grep -v -e mtDNA -e wFhyb -e Spiroplasma -e Scaffold00 Formica_hybrid_v1_5e6_dat
 ## We also need to calculate the "--skip-coverage"
 ## --skip-coverage = total DP combined across all samples; assuming max 400x per sample per region, 400X per sample * 38 samples = 15200X
 ## This will be set in the freebayes code below.
+## An additional note on "--skip-coverage": a value of, e.g., "200" means that each region will be skipped that has a higher sum count of 200. You can also reduced this value by using this idea for --skip-coverage: "Number of samples" x "mean coverage across all samples" x 2
 ## We also need a folder "raw" under the bam_final folder
 ## To detach from the "screen", use "Ctrl + A, then D". To list screen sessions, use "screen -ls". To reattach, use "screen -r"
 
@@ -172,6 +168,7 @@ BAM=/scratch/project_2009316/DutchSamples/X204SC23115958-Z01-F008/05.BAM/bam_fin
 #  --limit-coverage 100 \ 
 #  --use-best-n-alleles 3 \
 #  -out $RES/raw/all_samples_raw.vcf
+
 
 freebayes-puhti -time 72 -mem 64 -regions $REF/Formica_hybrid_v1_5e6_data_regions.txt -f $REF/Formica_hybrid_v1_wFhyb_Sapis.fa -L $BAM/all.bam.list -k --genotype-qualities --skip-coverage 15200 --limit-coverage 100 --use-best-n-alleles 3 -out $RES/raw/all_samples_raw.vcf
 
