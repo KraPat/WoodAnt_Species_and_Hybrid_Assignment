@@ -4,6 +4,7 @@ wget --user XY-Z01-F001 --password XY URL
 
 #In the txt or MD5 file, you should see a check sum. When using "cksum FILE", it will create a string of numbers and letters, which if identical with the number in the MD5 file, shows data integrity. 
 cksum FILE
+md5sum FILE
 #string appears
 
 #2) Back-up at ALLAS
