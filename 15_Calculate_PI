@@ -1,0 +1,55 @@
+## To calculate PI, you can need a VCF file and a file including the sample IDs that are used in the VCF file.
+## PI, aka the nucleotide diversity (π), is the average number of nucleotide differences per site between two sequences, within a population:
+## the total pairwise differences at all sites / number of pairwise comparisons × number of sites
+
+## To extract the IDs, you can use
+bcftools query -l your_file.vcf.gz > samples.txt
+## Then, you check the samples.txt and allocate them. It should look something like a tab-separated file, e.g.:
+sample  population
+ind1    spA
+ind2    spA
+ind3    spA
+ind4    spB
+ind5    spB
+ind6    spB
+
+## We will calculate PI using the whole-genome
+## We use sinteractive with the default settings for this:
+sinteractive
+## For Population 1
+vcftools \
+  --gzvcf data.vcf.gz \
+  --keep pop1.txt \
+  --site-pi \
+  --out pop1_pi_sites
+
+# Population 2
+vcftools \
+  --gzvcf data.vcf.gz \
+  --keep pop2.txt \
+  --site-pi \
+  --out pop2_pi_sites
+
+## For both files, you get PI values all sites in the genome. Using awk below, we calculate the mean over all sites.
+## Note, change the "$3" if necessary, dpeneding where the PI values are in the "XY.sites.pi"-file
+awk 'NR>1 {sum += $3; n++} END {if (n>0) print sum/n}' pop1_pi_sites.sites.pi
+## With this, we will receive one genomw-wide PI value for all hybrid or F. aquilonia samples
+
+
+-----
+## Note: We can also calculate PI for each population in sliding windows
+# Population 1
+vcftools \
+  --gzvcf data.vcf.gz \
+  --keep pop1.txt \
+  --window-pi 10000 \
+  --window-pi-step 10000 \
+  --out pop1_pi_10kb
+
+# Population 2
+vcftools \
+  --gzvcf data.vcf.gz \
+  --keep pop2.txt \
+  --window-pi 10000 \
+  --window-pi-step 10000 \
+  --out pop2_pi_10kb
