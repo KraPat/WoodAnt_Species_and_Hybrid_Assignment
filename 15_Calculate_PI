@@ -22,6 +22,9 @@ vcftools \
   --keep pop1.txt \
   --site-pi \
   --out pop1_pi_sites
+## Oneliner
+# vcftools --gzvcf Samples257_DP8.183inds.AN10.noScaff00-03_MS1.vcf.gz --keep aquiFile --site-pi --out aqui_pi_site
+# 0.0521456
 
 # Population 2
 vcftools \
@@ -29,12 +32,17 @@ vcftools \
   --keep pop2.txt \
   --site-pi \
   --out pop2_pi_sites
+# vcftools --gzvcf Samples257_DP8.183inds.AN10.noScaff00-03_MS1.vcf.gz --keep adm1File --site-pi --out adm1_pi_site
+# 0.0657245
 
 ## For both files, you get PI values all sites in the genome. Using awk below, we calculate the mean over all sites.
 ## Note, change the "$3" if necessary, dpeneding where the PI values are in the "XY.sites.pi"-file
-awk 'NR>1 {sum += $3; n++} END {if (n>0) print sum/n}' pop1_pi_sites.sites.pi
-## With this, we will receive one genomw-wide PI value for all hybrid or F. aquilonia samples
 
+awk 'NR>1 {sum += $3; n++} END {if (n>0) print sum/n}' pop1_pi_sites.sites.pi
+
+## NR>1 skips the header.
+## Output: single number = mean π across all listed sites (including those with PI = 0, aka invariant sites).
+## With this, we will receive one genomw-wide PI value for all hybrid or F. aquilonia samples
 
 -----
 ## Note: We can also calculate PI for each population in sliding windows
@@ -45,6 +53,9 @@ vcftools \
   --window-pi 10000 \
   --window-pi-step 10000 \
   --out pop1_pi_10kb
+# vcftools --gzvcf Samples257_DP8.183inds.AN10.noScaff00-03_MS1.vcf.gz --keep aquiFile --window-pi 10000 --window-pi-step 10000 --out aqui_pi_site_10k
+# awk 'NR>1 {sum += $5; n++} END {if (n>0) print sum/n}' aqui_pi_site_10k.windowed.pi > aqui_pi_site_10k.windowed.pi.value
+# 0.0014027
 
 # Population 2
 vcftools \
@@ -53,3 +64,6 @@ vcftools \
   --window-pi 10000 \
   --window-pi-step 10000 \
   --out pop2_pi_10kb
+# vcftools --gzvcf Samples257_DP8.183inds.AN10.noScaff00-03_MS1.vcf.gz --keep adm1File --window-pi 10000 --window-pi-step 10000 --out adm1_pi_site_10k
+# awk 'NR>1 {sum += $5; n++} END {if (n>0) print sum/n}' adm1_pi_site_10k.windowed.pi  > adm1_pi_site_10k.windowed.pi.value
+# 0.00168305
